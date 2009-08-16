@@ -16,7 +16,6 @@
 # Place - Suite 330, Boston, MA 02111-1307, USA.
 
 import bencode
-import MySQLdb
 import os
 import socket
 import traceback
@@ -71,7 +70,9 @@ class scrape:
                 dbconn.close()
 
 if __name__ == '__main__':
-    raw_scrape = open('../scrapes/obt.scrape').read()
+    raw_scrape = open('data/test.scrape').read()
     scrape_obj = bencode.bdecode(raw_scrape)
+    for i in scrape_obj['files'].keys():
+        print i
     obt = scrape('http://tracker.openbittorrent.com/')
     obt.scrape_info(scrape_obj)

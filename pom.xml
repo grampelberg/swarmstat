@@ -68,6 +68,22 @@
       <version>${scala.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.scala-tools.testing</groupId>
+      <artifactId>specs</artifactId>
+      <version>1.5.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.saunter.bencode</groupId>
+      <artifactId>scala-bencode</artifactId>
+      <version>0.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scalaforge.scalax</groupId>
+      <artifactId>scalax</artifactId>
+      <version>0.2</version>
+    </dependency>
   </dependencies>
 
   <build>

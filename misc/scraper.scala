@@ -1,5 +1,4 @@
-/* Scala based tracker scraper and data fetcher
- * Copyright (C) 2009 Thomas Rampelberg <pyronicide@gmail.com>
+/* Copyright (C) 2009 Thomas Rampelberg <pyronicide@gmail.com>
 
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -15,46 +14,28 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-import java.io._
+/* Simple script to fetch a scrape.
+ * Usage:
+ * scraper.scala remote_source local_file
+ */
 
-import org.klomp.snark.bencode._
+// Scala std lib
+import scala.io._
 
-// import scalax.io._
+// Other libs
+import scalax.io._
+import scalax.io.Implicits._
+import scalax.data.Implicits._
 
-// XXX - Need to make this polite!!!!!
-// def get(uri: String): String = {
-//   val client = new DefaultHttpClient()
-//   val request = new HttpGet(uri)
-//   println("request: " + request.getURI)
-//   val response = new BasicResponseHandler[String]
-//   val body = client.execute(request)
-//   client.getConnectionManager.shutdown
-//   response.handleResponse(body)
-// }
-
-// def scalax_get(uri: String): String = {
-//   InputStreamResource.url(uri).reader.lines.foldLeft("")(_+_)
-// }
-
-// def bdecode(file_name: String) = {
-//   val decoded_file = (new BDecoder(new FileInputStream(file_name))).bdecode
-//   val torrent_list = decoded_file.getMap.get("files").asInstanceOf[BEValue].getMap.entrySet
-//   val torrent_iterator = torrent_list.iterator
-//   while (torrent_iterator.hasNext) {
-//     val torrent_info = torrent_iterator.next
-//     val info_hash = torrent_info.getKey
-//     val status_map = torrent_info.getValue.asInstanceOf[BEValue].getMap
-//     val swarm_total = status_map.get("incomplete").asInstanceOf[BEValue].getInt +
-//       status_map.get("complete").asInstanceOf[BEValue].getInt
-//     println(swarm_total)
-//   }
-// }
-
-def bdecode(file_name: String) = {
-  val list = (new BDecoder(new FileInputStream(file_name))).bdecode.getMap.get("files").asInstanceOf[BEValue].getMap.entrySet
-  println(Set(list : _*))
+def scrape_source(remote: String, local: String) = {
+  val remote_reader = InputStreamResource.url(remote).reader
+  for (w <- local.toFile.writer; line <- remote_reader.lines) {
+    w.write(line + "\n")
+  }
 }
 
-//println(scalax_get("http://google.com"))
-
-bdecode("../btstats/test.scrape")
+println("Remote Source=" + args(0))
+println("Local Path=" + args(1))
+println("Fetching ......")
+scrape_source(args(0), args(1))
+println("Completed Fetch!")
