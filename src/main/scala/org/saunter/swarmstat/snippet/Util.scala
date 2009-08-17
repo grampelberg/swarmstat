@@ -14,25 +14,19 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Model for torrent information.
+/* Utilities for the web side of things.
  */
 
-package org.saunter.swarmstat.model
+package org.saunter.swarmstat.snippet
 
-import net.liftweb._
-import net.liftweb.mapper._
-import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.util._
+import scala.xml.{NodeSeq}
+import org.saunter.swarmstat._
+import org.saunter.swarmstat.model._
 
-// XXX - What do the IdPKs end up being ... need to be UUIDs
-class Torrent extends LongKeyedMapper[Torrent] with IdPK {
-  def getSingleton = Torrent
+class Util {
+  def in(html: NodeSeq) =
+    if (User.loggedIn_?) html else NodeSeq.Empty
 
-  object name extends MappedPoliteString(this, 256)
-  object start extends MappedDateTime(this) {
-    override def defaultValue = Helpers.timeNow
-  }
+  def out(html: NodeSeq) =
+    if (!User.loggedIn_?) html else NodeSeq.Empty
 }
-
-object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]

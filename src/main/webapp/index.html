@@ -1,9 +1,41 @@
 <lift:surround with="default" at="content">
-  <h2>Welcome to your project!</h2>
-		<p>
-      <lift:helloWorld.howdy>
-        <span>Welcome to swarmstat at <b:time/></span>
-      </lift:helloWorld.howdy>
-    </p>
+  <lift:Util.out>Please
+    <lift:menu.item name="Login">Log In</lift:menu.item>
+  </lift:Util.out>
+  <lift:Util.in>
+    <lift:TorrentSnippet.list all_id="all_torrents">
+      <div id="all_torrents">
+        <ul>
+          <torrent:list>
+            <li>
+              <torrent:name></torrent:name>
+              <torrent:start></torrent:start>
+            </li>
+          </torrent:list>
+        </ul>
+      </div>
+    </lift:TorrentSnippet.list>
+    <lift:TorrentSnippet.add form="post">
+      <table>
+        <tr>
+          <td>URL:</td>
+          <td><torrent:name>Name</torrent:name></td>
+        </tr>
+
+        <tr>
+          <td>Start:</td>
+          <td><torrent:start></torrent:start></td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+          <td>
+            <torrent:submit>
+              <button>New</button>
+            </torrent:submit>
+          </td>
+        </tr>
+      </table>
+    </lift:TorrentSnippet.add>
+ </lift:Util.in>
 </lift:surround>
 

@@ -1,0 +1,8 @@
+target
+dist
+*.class
+bin
+lift_example
+.manager
+.DS_Store
+derby.log

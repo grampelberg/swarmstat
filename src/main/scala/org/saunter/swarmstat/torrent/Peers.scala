@@ -17,7 +17,7 @@
 /* Library for doing all kinds of interesting operations on peers.
  */
 
-package org.saunter.torrent
+package org.saunter.swarmstat.torrent
 
 import java.io._
 import java.net._

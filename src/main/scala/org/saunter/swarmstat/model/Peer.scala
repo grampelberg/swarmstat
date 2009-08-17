@@ -14,7 +14,7 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Model for torrent information.
+/* Model to keep peer data.
  */
 
 package org.saunter.swarmstat.model
@@ -24,15 +24,17 @@ import net.liftweb.mapper._
 import net.liftweb.http._
 import net.liftweb.http.SHtml._
 import net.liftweb.util._
+import org.saunter.swarmstat.model._
 
-// XXX - What do the IdPKs end up being ... need to be UUIDs
-class Torrent extends LongKeyedMapper[Torrent] with IdPK {
-  def getSingleton = Torrent
+// XXX - Need to get rid of the PK here.
+class Peer extends LongKeyedMapper[Peer] with IdPK {
+  def getSingleton = Peer
 
-  object name extends MappedPoliteString(this, 256)
-  object start extends MappedDateTime(this) {
+  object torrent extends MappedLongForeignKey(this, Torrent)
+  object ip extends MappedInt(this)
+  object observed extends MappedDateTime(this) {
     override def defaultValue = Helpers.timeNow
   }
 }
 
-object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]
+object Peer extends Peer with LongKeyedMetaMapper[Peer]

@@ -21,10 +21,10 @@ class Boot {
 
     // where to search snippet
     LiftRules.addToPackages("org.saunter.swarmstat")
-    Schemifier.schemify(true, Log.infoF _, User)
+    Schemifier.schemify(true, Log.infoF _, User, Torrent, Peer)
 
     // Build SiteMap
-    val entries = Menu(Loc("Home", List("index"), "Home")) :: 
+    val entries = Menu(Loc("Home", List("index"), "Home")) ::
     Menu(Loc("Static", Link(List("static"), true, "/static/index"), "Static Content")) ::
     User.sitemap
 
