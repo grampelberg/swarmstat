@@ -28,10 +28,7 @@ import scalax.io._
 import scalax.io.Implicits._
 import scalax.data.Implicits._
 
-class TorrentPart(the_path: String, length: Int) {
-  val path = the_path
-  val size = length
-
+class TorrentPart(path: String, size: Int) {
   override def toString() =
     path + ":" + size
 }
@@ -55,6 +52,7 @@ class Info(encoded_str: String) {
         case _ => ""
       }
     }
+  val peers = new Peers(this)
 
   def comment = get_value("comment")
   def encoding = get_value("encoding")
@@ -62,6 +60,7 @@ class Info(encoded_str: String) {
   // immutable and set at startup if that was the case (especially since some
   // tracker entries don't really exist).
   def trackers = get_value("announce") :: announce_list
+  def tracker = trackers(0)
   def creation = struct match {
     case x: Map[String, Int] => x.get("creation date") match {
       // *grumbles about millisecond accuracy*
@@ -86,10 +85,13 @@ class Info(encoded_str: String) {
   def announce_list =
     struct match {
       case x: Map[String, _] => x.get("announce-list") match {
-        case Some(x: List[List[String]]) => x.flatMap(x => x)
+        case Some(x: List[List[String]]) => x.flatMap(
+          x => x).filter(_.startsWith("http"))
         case _ => List()
       }
     }
+
+  def current_peers = peers.current
 
   // Different ways to get string values from the torrent struct.
   def get_value[A](key: String, map: Map[String, _]): A =
