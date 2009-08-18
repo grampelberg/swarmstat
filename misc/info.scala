@@ -17,8 +17,6 @@
 /* Library to fetch information on a specific torrent.
  */
 
-package org.saunter.swarmstat.torrent
-
 import java.util.Date
 import java.security.MessageDigest
 
@@ -27,6 +25,8 @@ import scala.io._
 import scalax.io._
 import scalax.io.Implicits._
 import scalax.data.Implicits._
+
+import scala.collection.immutable._
 
 class TorrentPart(the_path: String, length: Int) {
   val path = the_path
@@ -137,3 +137,5 @@ object Info {
   def from_file(torrent: String) =
     new Info(InputStreamResource.file(torrent))
 }
+
+println(Info.from_file("data/test.torrent").files)

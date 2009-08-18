@@ -97,6 +97,8 @@ object Peers {
 //     trackers( (new Random).nextInt(trackers.length) )
 //   }
 
+  // XXX - This needs to GO AWAY it's been moved into Info.scala since this
+  // shouldn't be calculating the info hash anyways.
   def get_info_hash(info_obj: Option[_]): String =
     info_obj match {
       case Some(x) => hex_encoder(MessageDigest.getInstance("SHA").digest(
@@ -111,8 +113,7 @@ object Peers {
     InetAddress.getByAddress(
       info.slice(0, 4).toArray.map(_.toByte)).getHostAddress
 
-  // I'm really cranky about this but apparently URLEncoder.encode is a pile of
-  // crap.
+  // XXX - Remove along with get_info_hash or make a util (if it gets used other places).
   def hex_encoder(input: Array[Byte]): String =
     input.map( x => (0xFF & x) match {
       case x if x < 16 => "0" + Integer.toHexString(x)
