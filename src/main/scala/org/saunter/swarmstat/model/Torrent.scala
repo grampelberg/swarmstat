@@ -29,10 +29,8 @@ import net.liftweb.util._
 class Torrent extends LongKeyedMapper[Torrent] with IdPK {
   def getSingleton = Torrent
 
-  object name extends MappedPoliteString(this, 256)
-  object start extends MappedDateTime(this) {
-    override def defaultValue = Helpers.timeNow
-  }
+  // XXX - This needs to go away .....
+  object url extends MappedPoliteString(this, 256)
 }
 
 object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]

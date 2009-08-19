@@ -19,6 +19,8 @@
 
 package org.saunter.swarmstat.snippet
 
+import java.text.SimpleDateFormat
+
 import net.liftweb.http._
 import net.liftweb.http.SHtml._
 import net.liftweb.http.S._
@@ -30,6 +32,15 @@ import net.liftweb.util.Helpers._
 import scala.xml.{NodeSeq, Text}
 
 import org.saunter.swarmstat.model._
+import org.saunter.swarmstat.torrent._
+
+// XXX - Testing
+import org.saunter.bencode._
+import scala.io._
+import scalax.io._
+import scalax.io.Implicits._
+import scalax.data.Implicits._
+import java.util.Date
 
 class TorrentSnippet {
   // Add a torrent!
@@ -38,36 +49,40 @@ class TorrentSnippet {
 
     def checkAndSave(): Unit =
       torrent.validate match {
-        case Nil => torrent.save; S.notice("Added " + torrent.name)
+        case Nil => torrent.save; S.notice("Added " + torrent.url)
         case xs => S.error(xs); S.mapSnippet("Torrent.add", doBind)
       }
 
     def doBind(form: NodeSeq) =
       bind("torrent", form,
-           "name" -> torrent.name.toForm,
-           "start" -> torrent.start.toForm,
+           "url" -> torrent.url.toForm,
            "submit" -> submit("New", checkAndSave))
+
+    doBind(form)
+  }
+
+  def purge(form: NodeSeq) = {
+    def all() =
+      Torrent.findAll.map( x => x.delete_!)
+
+    def doBind(form: NodeSeq) =
+      bind("torrent", form,
+           "purge" -> submit("Purge", all))
 
     doBind(form)
   }
 
   // Let's get a list of all the torrents in the database
 
-  private def toShow =
-    Torrent.findAll(OrderBy(Torrent.name, Ascending))
-
-  private def name(torrent: Torrent, reDraw: () => JsCmd) =
-    swappable(<span>{torrent.name}</span>,
-              <span>{ajaxText(torrent.name,
-                              v => {torrent.name(v).save; reDraw()})}
-              </span>)
-
   private def doList(reDraw: () => JsCmd)(html: NodeSeq): NodeSeq =
-    toShow.flatMap(torrent =>
+    Torrent.findAll.flatMap(torrent_model => {
+      val torrent = new Info(Source.fromURL(torrent_model.url.toString).getLines.mkString)
       bind("torrent", html,
-           "name" -> name(torrent, reDraw),
-           "start" -> torrent.start
-         ))
+           "name" -> torrent.name,
+           "creation" -> (new SimpleDateFormat("mm:hha MM/dd/yyyy")).format(
+             new Date())
+         )
+    })
 
   def list(html: NodeSeq) = {
     val id = S.attr("all_id").open_!
@@ -78,8 +93,6 @@ class TorrentSnippet {
       bind("torrent", html,
            "list" -> doList(reDraw) _)
     }
-
     inner()
   }
-
 }

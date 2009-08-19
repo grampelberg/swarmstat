@@ -28,7 +28,10 @@ import scalax.io._
 import scalax.io.Implicits._
 import scalax.data.Implicits._
 
-class TorrentPart(path: String, size: Int) {
+class TorrentPart(the_path: String, the_size: Int) {
+  val path = the_path
+  val size = the_size
+
   override def toString() =
     path + ":" + size
 }
@@ -92,6 +95,7 @@ class Info(encoded_str: String) {
     }
 
   def current_peers = peers.current
+  def size = files.foldLeft(0)( (x,y) => x + y.size )
 
   // Different ways to get string values from the torrent struct.
   def get_value[A](key: String, map: Map[String, _]): A =

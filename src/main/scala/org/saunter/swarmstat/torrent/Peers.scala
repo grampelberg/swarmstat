@@ -30,7 +30,6 @@ import scalax.io._
 import scalax.io.Implicits._
 import scalax.data.Implicits._
 
-
 class Peers(torrent: Info) {
 
   def this(torrent: String) =
