@@ -19,16 +19,11 @@
 
 package org.saunter.swarmstat.torrent
 
-import java.io._
-import java.net._
-import java.util.Random
-import java.security._
+import java.net.InetAddress
+import java.security.MessageDigest
 
 import org.saunter.bencode._
-import scala.io._
-import scalax.io._
-import scalax.io.Implicits._
-import scalax.data.Implicits._
+import scalax.io.InputStreamResource
 
 class Peers(torrent: Info) {
 
@@ -38,7 +33,7 @@ class Peers(torrent: Info) {
   def current = {
     val url = torrent.tracker + "?info_hash=" + torrent.info_hash
     val data = InputStreamResource.url(url).reader.slurp
-    Bencode.parse(data) match {
+    BencodeDecoder.decode(data) match {
       case Some(x: Map[String, _]) => x.get("peers") match {
         case Some(x: String) => get_peer_list(x)
         case _ => List()

@@ -14,25 +14,24 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Model for torrent information.
+/* Model to store the available monitoring feeds.
  */
 
 package org.saunter.swarmstat.model
 
-import net.liftweb._
 import net.liftweb.mapper._
 import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.util._
 
-// XXX - What do the IdPKs end up being ... need to be UUIDs
-class Torrent extends LongKeyedMapper[Torrent] with IdPK {
-  def getSingleton = Torrent
+class RSSFeed extends LongKeyedMapper[RSSFeed] with IdPK {
+  def getSingleton = RSSFeed
 
-  // XXX - need duplicate validation!!
-  object info_hash extends MappedPoliteString(this, 20)
-  object creation extends MappedDateTime(this)
-  object name extends MappedPoliteString(this, 128)
+  object url extends MappedPoliteString(this, 256) {
+    override def validations = validURL _ :: super.validations
+
+    def validURL(in: String): List[FieldError] =
+      if (in.startsWith("http://")) Nil
+      else List(FieldError(this, <b>Please enter a valid URL</b>))
+  }
 }
 
-object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]
+object RSSFeed extends RSSFeed with LongKeyedMetaMapper[RSSFeed]

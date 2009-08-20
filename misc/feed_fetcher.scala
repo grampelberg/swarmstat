@@ -14,25 +14,19 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Model for torrent information.
- */
 
-package org.saunter.swarmstat.model
+import scalax.io.InputStreamResource
 
-import net.liftweb._
-import net.liftweb.mapper._
-import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.util._
+import org.saunter.swarmstat.torrent._
 
-// XXX - What do the IdPKs end up being ... need to be UUIDs
-class Torrent extends LongKeyedMapper[Torrent] with IdPK {
-  def getSingleton = Torrent
+object FeedFetcher {
 
-  // XXX - need duplicate validation!!
-  object info_hash extends MappedPoliteString(this, 20)
-  object creation extends MappedDateTime(this)
-  object name extends MappedPoliteString(this, 128)
+  def fetch(url: String): List[Info] =
+    (XML.load(url) \\ "item").map(_ \ "link").map(_.text).filter(
+      _.startsWith("http://")).map(_+"/download.torrent").map(Info.from_url(_))
 }
 
-object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]
+println(FeedFetcher.fetch("http://btjunkie.org/rss.xml"))
+List("http://btjunkie.org/rss.xml",
+     "http://extratorrent.com/rss.xml?type=popular",
+     "http://feedproxy.google.com/Newtorrents")

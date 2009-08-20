@@ -1,40 +1,39 @@
 <lift:surround with="default" at="content">
-    <lift:TorrentSnippet.list all_id="all_torrents">
-      <div id="all_torrents">
-        <ul>
-          <torrent:list>
-            <li>
-              <torrent:name></torrent:name>
-              <torrent:creation></torrent:creation>
-            </li>
-          </torrent:list>
-        </ul>
-      </div>
-    </lift:TorrentSnippet.list>
-    <lift:TorrentSnippet.add form="post">
-      <table>
-        <tr>
-          <td>URL:</td>
-          <td><torrent:url>Name</torrent:url></td>
-        </tr>
-        <tr>
-          <td>&nbsp;</td>
-          <td>
-            <torrent:submit>
-              <button>New</button>
-            </torrent:submit>
-          </td>
-        </tr>
-      </table>
-    </lift:TorrentSnippet.add>
-    <lift:TorrentSnippet.purge form="post">
-      <torrent:purge></torrent:purge>
-    </lift:TorrentSnippet.purge>
+  <lift:TorrentSnippet.list all_id="all_torrents">
+    <div id="all_torrents">
+      <ul>
+        <torrent:list>
+          <li>
+            <torrent:name></torrent:name>
+            <torrent:creation></torrent:creation>
+          </li>
+        </torrent:list>
+      </ul>
+    </div>
+  </lift:TorrentSnippet.list>
+  <lift:TorrentSnippet.add form="post">
+    <table>
+      <tr>
+        <td>URL:</td>
+        <td><torrent:url>Name</torrent:url></td>
+      </tr>
+      <tr>
+        <td>&nbsp;</td>
+        <td>
+          <torrent:submit>
+            <button>New</button>
+          </torrent:submit>
+        </td>
+      </tr>
+    </table>
+  </lift:TorrentSnippet.add>
+  <lift:TorrentSnippet.purge form="post">
+    <torrent:purge></torrent:purge>
+  </lift:TorrentSnippet.purge>
   <lift:Util.out>Please
     <lift:menu.item name="Login">Log In</lift:menu.item>
   </lift:Util.out>
   <lift:Util.in>
-
- </lift:Util.in>
+  </lift:Util.in>
 </lift:surround>
 

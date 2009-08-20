@@ -20,6 +20,7 @@
 package org.saunter.swarmstat.snippet
 
 import java.text.SimpleDateFormat
+import java.util.Date
 
 import net.liftweb.http._
 import net.liftweb.http.SHtml._
@@ -34,28 +35,35 @@ import scala.xml.{NodeSeq, Text}
 import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.torrent._
 
-// XXX - Testing
-import org.saunter.bencode._
-import scala.io._
-import scalax.io._
-import scalax.io.Implicits._
-import scalax.data.Implicits._
-import java.util.Date
-
 class TorrentSnippet {
   // Add a torrent!
-  def add(form: NodeSeq) = {
-    val torrent = Torrent.create
+  def add(form: NodeSeq): NodeSeq = {
+    object url extends RequestVar(Full(""))
 
+    // XXX - Need more validation ... should check and see if it's a valid
+    // torrent.
     def checkAndSave(): Unit =
-      torrent.validate match {
-        case Nil => torrent.save; S.notice("Added " + torrent.url)
-        case xs => S.error(xs); S.mapSnippet("Torrent.add", doBind)
+      url.get match {
+        case Full(x) if x.startsWith("http") => populate_torrent(x)
+        case Full(x) => S.notice("Invalid url: " + x)
       }
+
+
+    def populate_torrent(url: String) = {
+      val torrent_model = Torrent.create
+      val torrent = Info.from_url(url)
+      torrent_model.info_hash.apply(torrent.info_hash)
+      torrent_model.creation.apply(torrent.creation)
+      torrent_model.name.apply(torrent.name)
+      torrent_model.save
+      S.notice("Added: " + torrent.name)
+    }
 
     def doBind(form: NodeSeq) =
       bind("torrent", form,
-           "url" -> torrent.url.toForm,
+           "url" -> text(url.openOr(""),
+                         v => url(Full(v))
+                       ) % ("size" -> "50") % ("id" -> "urlField"),
            "submit" -> submit("New", checkAndSave))
 
     doBind(form)
@@ -72,27 +80,33 @@ class TorrentSnippet {
     doBind(form)
   }
 
+  def viewlist(html: NodeSeq) = {
+    <lift:comet type="DynamicTorrentView" name={toLong(S.param("id")).toString}>
+      <torrent:view>Loading...</torrent:view>
+    </lift:comet>
+  }
+
   // Let's get a list of all the torrents in the database
 
-  private def doList(reDraw: () => JsCmd)(html: NodeSeq): NodeSeq =
-    Torrent.findAll.flatMap(torrent_model => {
-      val torrent = new Info(Source.fromURL(torrent_model.url.toString).getLines.mkString)
-      bind("torrent", html,
-           "name" -> torrent.name,
-           "creation" -> (new SimpleDateFormat("mm:hha MM/dd/yyyy")).format(
-             new Date())
-         )
-    })
+//   private def doList(reDraw: () => JsCmd)(html: NodeSeq): NodeSeq =
+//     Torrent.findAll.flatMap(torrent => {
+//       bind("torrent", html,
+//            "name" -> torrent.name,
+//            "creation" -> torrent.creation
+//            // "creation" -> (new SimpleDateFormat("hh:mma MM/dd/yyyy")).format(
+//            //   torrent.creation)
+//          )
+//     })
 
-  def list(html: NodeSeq) = {
-    val id = S.attr("all_id").open_!
+//   def list(html: NodeSeq) = {
+//     val id = S.attr("all_id").open_!
 
-    def inner(): NodeSeq = {
-      def reDraw() = SetHtml(id, inner())
+//     def inner(): NodeSeq = {
+//       def reDraw() = SetHtml(id, inner())
 
-      bind("torrent", html,
-           "list" -> doList(reDraw) _)
-    }
-    inner()
-  }
+//       bind("torrent", html,
+//            "list" -> doList(reDraw) _)
+//     }
+//     inner()
+//   }
 }

@@ -1,0 +1,28 @@
+<lift:surround with="default" at="content">
+  <lift:RSSSnippet.list all_id="all_feeds">
+    <div id="all_feeds">
+      <ul>
+        <feed:list>
+          <li>
+            <feed:url></feed:url>
+          </li>
+        </feed:list>
+      </ul>
+    </div>
+  </lift:RSSSnippet.list>
+  <lift:RSSSnippet.add form="post">
+    <table>
+      <tr>
+        <td>URL:</td>
+        <td><feed:url></feed:url></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><feed:submit></feed:submit></td>
+      </tr>
+    </table>
+  </lift:RSSSnippet.add>
+  <lift:RSSSnippet.purge form="post">
+    <feed:purge></feed:purge>
+  </lift:RSSSnippet.purge>
+</lift:surround>

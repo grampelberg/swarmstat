@@ -23,10 +23,7 @@ import java.util.Date
 import java.security.MessageDigest
 
 import org.saunter.bencode._
-import scala.io._
-import scalax.io._
-import scalax.io.Implicits._
-import scalax.data.Implicits._
+import scalax.io.InputStreamResource
 
 class TorrentPart(the_path: String, the_size: Int) {
   val path = the_path
@@ -43,14 +40,14 @@ class Info(encoded_str: String) {
 
   // Not sure the pieces should be kept in memory since they'll probably never
   // be used .... maybe need to sanitize this.
-  val struct = Bencode.parse(encoded_str).get
+  val struct = BencodeDecoder.decode(encoded_str).get
   // This is going to end up getting used all over the place and I'd like to
   // make sure it only gets calculated once.
   val info_hash: String =
     struct match {
       case x: Map[String, _] => x.get("info") match {
         case Some(x) => hex_encoder(MessageDigest.getInstance("SHA").digest(
-          Bencode.encode(x).getBytes))
+          BencodeEncoder.encode(x).getBytes))
         // XXX - Really need to raise an error in this case.
         case _ => ""
       }

@@ -14,25 +14,35 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Model for torrent information.
- */
+package org.saunter.swarmstat.comet
 
-package org.saunter.swarmstat.model
-
-import net.liftweb._
-import net.liftweb.mapper._
 import net.liftweb.http._
-import net.liftweb.http.SHtml._
 import net.liftweb.util._
+import net.liftweb.sitemap._
+import net.liftweb.sitemap.Loc._
+import scala.xml._
 
-// XXX - What do the IdPKs end up being ... need to be UUIDs
-class Torrent extends LongKeyedMapper[Torrent] with IdPK {
-  def getSingleton = Torrent
+import org.saunter.swarmstat.model._
+import org.saunter.swarmstat.torrent._
 
-  // XXX - need duplicate validation!!
-  object info_hash extends MappedPoliteString(this, 20)
-  object creation extends MappedDateTime(this)
-  object name extends MappedPoliteString(this, 128)
+class DynamicTorrentView extends CometActor {
+  override def defaultPrefix = Full("torrent")
+  var torrents: List[String] = List()
+
+  def torrentview(e: String): Node = {
+    <li>{e}</li>
+  }
+
+  def render =
+    bind("view" -> <ul>{torrents.flatMap(e => torrentview(e))}</ul>)
+
+  override def localSetup = {
+    (FeedFetcher !? AddFeedWatcher(this)) match {
+      case TorrentUpdate(entries) => this.torrents = entries
+    }
+  }
+
+  override def lowPriority: PartialFunction[Any, Unit] = {
+    case TorrentUpdate(entries) => this.torrents = entries; reRender(false)
+  }
 }
-
-object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]

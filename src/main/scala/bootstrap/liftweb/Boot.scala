@@ -21,14 +21,9 @@ class Boot {
 
     // where to search snippet
     LiftRules.addToPackages("org.saunter.swarmstat")
-    Schemifier.schemify(true, Log.infoF _, User, Torrent, Peer)
+    Schemifier.schemify(true, Log.infoF _, User, Torrent, Peer, RSSFeed)
 
-    // Build SiteMap
-    val entries = Menu(Loc("Home", List("index"), "Home")) ::
-    Menu(Loc("Static", Link(List("static"), true, "/static/index"), "Static Content")) ::
-    User.sitemap
-
-    LiftRules.setSiteMap(SiteMap(entries:_*))
+    LiftRules.setSiteMap(SiteMap(MenuSetup.menu:_*))
 
     /*
      * Show the spinny image when an Ajax call starts
@@ -119,4 +114,12 @@ object DBVendor extends ConnectionManager {
   }
 }
 
+object MenuSetup {
+
+  def menu: List[Menu] =
+    Menu(Loc("Home", List("index"), "Home")) ::
+    Menu(Loc("Feeds", List("feeds"), "Feeds")) ::
+    User.sitemap
+
+}
 
