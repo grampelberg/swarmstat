@@ -1,16 +1,5 @@
 <lift:surround with="default" at="content">
-  <lift:TorrentSnippet.list all_id="all_torrents">
-    <div id="all_torrents">
-      <ul>
-        <torrent:list>
-          <li>
-            <torrent:name></torrent:name>
-            <torrent:creation></torrent:creation>
-          </li>
-        </torrent:list>
-      </ul>
-    </div>
-  </lift:TorrentSnippet.list>
+  <lift:TorrentSnippet.viewlist />
   <lift:TorrentSnippet.add form="post">
     <table>
       <tr>

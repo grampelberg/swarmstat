@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Thomas Rampelberg <pyronicide@gmail.com>
+/* Copyright (C) 2009 Thomas Rampelberg <pyronicide@saunter.org>
 
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -38,11 +38,14 @@ class DynamicTorrentView extends CometActor {
 
   override def localSetup = {
     (FeedFetcher !? AddFeedWatcher(this)) match {
-      case TorrentUpdate(entries) => this.torrents = entries
+      case TorrentUpdateBatch(entries) => this.torrents = entries
     }
   }
 
   override def lowPriority: PartialFunction[Any, Unit] = {
-    case TorrentUpdate(entries) => this.torrents = entries; reRender(false)
+    case TorrentUpdateBatch(entries) =>
+      this.torrents = entries; reRender(false)
+    case TorrentUpdateSingle(s) =>
+      this.torrents = s :: this.torrents; reRender(false)
   }
 }

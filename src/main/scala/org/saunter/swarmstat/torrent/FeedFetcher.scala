@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Thomas Rampelberg <pyronicide@gmail.com>
+/* Copyright (C) 2009 Thomas Rampelberg <pyronicide@saunter.org>
 
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -21,10 +21,9 @@ import scala.actors.Actor
 import scala.actors.Actor._
 import scala.xml._
 
-
 import org.saunter.swarmstat.model._
 
-object FeedFetcher extends Actor {
+class Foo extends Actor {
   var watchers: List[Actor] = List()
 
   def act = loop {
@@ -48,20 +47,34 @@ object FeedFetcher extends Actor {
       torrent_model.name.apply(torrent.name)
       torrent_model.save
       println("Added: " + torrent_model.name)
+      watchers.foreach(_ ! TorrentUpdateSingle(torrent.name))
     } catch {
       case _ => println("Failed: " + raw)
     }
   }
 
   def add_watcher(me: Actor) = {
-    val entries = Torrent.findAll(OrderBy(Torrent.id, Ascending), MaxRows(10))
-    reply(TorrentUpdate(entries.map(_.name)))
+    val entries = Torrent.findAll(OrderBy(Torrent.id, Descending), MaxRows(10))
+    reply(TorrentUpdateBatch(entries.map(_.name)))
     watchers = me :: watchers
   }
 
   this.start
 }
 
+object FeedFetcher extends Foo {
+  override def fetch(url: String) =
+    (XML.load("http://www.ezrss.it/feed") \\ "item").map(_ \ "link").map(
+      _.text).filter(_.startsWith("http://")).foreach(store(_))
+}
+
+// object EZTVFetcher extends FeedFetcher {
+//   override def fetch(url: String) =
+//     (XML.load("http://www.ezrss.it/feed") \\ "item").map(_ \ "link").map(
+//       _.text).filter(_.startsWith("http://")).foreach(store(_))
+// }
+
 case class AddFeed(s: String)
 case class AddFeedWatcher(me: Actor)
-case class TorrentUpdate(xs: List[String])
+case class TorrentUpdateSingle(s: String)
+case class TorrentUpdateBatch(xs: List[String])
