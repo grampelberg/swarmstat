@@ -16,59 +16,91 @@
 
 package org.saunter.swarmstat.torrent
 
+import net.liftweb.mapper._
+import net.liftweb.util.{Box,Full,Empty,Failure}
 import scala.actors.Actor
 import scala.actors.Actor._
+import scala.xml._
 
 import org.saunter.swarmstat.model._
+import org.saunter.swarmstat.torrent.feeds._
 
 // XXX - How do watchers get removed? I could see this being bad.
 object MasterFeed extends Actor {
   var watchers: List[Actor] = List()
+  val feeds: List[Actor] = List(EZTV, Mininova, Isohunt)
 
   def act = loop {
     react {
       case AddWatcher(me: Actor) => watchers = me :: watchers
+      case UpdateFeeds => update_feeds
+      case ActiveFeeds => feeds
+      case NewTorrent(x: Info) => new_torrent(x)
     }
   }
+
+  def update_feeds =
+    feeds.foreach(_ ! Update)
+
+  def new_torrent(x: Info) =
+    watchers.foreach(_ ! NewTorrent(x))
 
   this.start
 }
 
 case class AddWatcher(me: Actor)
-case class NewTorrent(s: Either[String, List[String]])
-case class UpdateFeeds()
-case class ActiveFeeds()
+case class NewTorrent(x: Info)
+case class UpdateFeeds
+case class ActiveFeeds
 
+// XXX - Should probably be tracking *what* feed a torrent came from.
 trait Feed extends Actor {
+
   def act = loop {
     react {
       case Update => update
     }
   }
 
-  def fetch: List[String]
+  // Convenience method to allow friendly fetching across all feeds.
+  def get_data(url: String): NodeSeq =
+    XML.load(url)
 
+  def fetch: Seq[String]
+
+  // XXX - This is bad, shouldn't be hard coded.
   def update =
     fetch.foreach(store(_))
 
-  def store(raw: String) = {
+  def store(raw: String): Unit = {
     try {
-      save(Info.from_url(raw))
+      if (validate(raw)) {
+        val tor = Info.from_url(raw)
+        if (save(tor)) MasterFeed ! NewTorrent(tor)
+      }
+      else println("Invalid URL received: " + raw)
     } catch {
       // XXX - This needs to be converted to logging. I have no idea how that
       // works. There should be some kind of failure count. If this
       // fails too many times, something isn't working, the actor should be
-      // shut down and
-      case e => println("Failed: " + raw + "\nBecause: " + e)
+      // shut down
+      case e => println("Failed: " + raw + "\n\tBecause: " + e)
     }
   }
 
   def save(obj: Info) =
-    Torrent.create.info_hash.apply(obj.info_hash).creation.apply(
-      obj.creation).name.apply(obj.name).save
+    Torrent.find(By(Torrent.info_hash, obj.info_hash)) match {
+      case Full(_) => println("Duplicate: " + obj.name); false
+      case Empty => Torrent.create.info_hash.apply(
+        obj.info_hash).creation.apply(obj.creation).name.apply(obj.name).save; true
+      case Failure(msg, _, _) => println(
+        "Failure: " + obj.name + "\n\tBecause: " + msg); false
+    }
+
+  def validate(url: String) =
+    url.startsWith("http://")
 
   this.start
-  MasterFeed ! AddWatcher(this)
 }
 
 

@@ -17,6 +17,7 @@
 package org.saunter.swarmstat.comet
 
 import net.liftweb.http._
+import net.liftweb.mapper._
 import net.liftweb.util._
 import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
@@ -27,6 +28,7 @@ import org.saunter.swarmstat.torrent._
 
 class DynamicTorrentView extends CometActor {
   override def defaultPrefix = Full("torrent")
+  val max_view = 20
   var torrents: List[String] = List()
 
   def torrentview(e: String): Node = {
@@ -37,15 +39,14 @@ class DynamicTorrentView extends CometActor {
     bind("view" -> <ul>{torrents.flatMap(e => torrentview(e))}</ul>)
 
   override def localSetup = {
-    (FeedFetcher !? AddFeedWatcher(this)) match {
-      case TorrentUpdateBatch(entries) => this.torrents = entries
-    }
+    MasterFeed ! AddWatcher(this)
+    torrents = Torrent.findAll(OrderBy(Torrent.id, Descending),
+                               MaxRows(max_view)).map(_.name)
+    MasterFeed ! UpdateFeeds
   }
 
   override def lowPriority: PartialFunction[Any, Unit] = {
-    case TorrentUpdateBatch(entries) =>
-      this.torrents = entries; reRender(false)
-    case TorrentUpdateSingle(s) =>
-      this.torrents = s :: this.torrents; reRender(false)
+    case NewTorrent(x: Info) =>
+      torrents = x.name :: torrents.slice(0, max_view-1); reRender(false)
   }
 }

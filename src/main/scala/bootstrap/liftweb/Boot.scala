@@ -10,6 +10,8 @@ import _root_.java.sql.{Connection, DriverManager}
 import _root_.org.saunter.swarmstat.model._
 import _root_.javax.servlet.http.{HttpServletRequest}
 
+import org.saunter.swarmstat.torrent.MasterFeed
+
 /**
   * A class that's instantiated early and run.  It allows the application
   * to modify lift's environment
@@ -21,7 +23,7 @@ class Boot {
 
     // where to search snippet
     LiftRules.addToPackages("org.saunter.swarmstat")
-    Schemifier.schemify(true, Log.infoF _, User, Torrent, Peer, RSSFeed)
+    Schemifier.schemify(true, Log.infoF _, User, Torrent, Peer)
 
     LiftRules.setSiteMap(SiteMap(MenuSetup.menu:_*))
 
@@ -51,6 +53,10 @@ class Boot {
     req.setCharacterEncoding("UTF-8")
   }
 
+  /**
+   * Startup the master feed fetcher.
+   */
+  MasterFeed
 }
 
 /**
@@ -118,7 +124,6 @@ object MenuSetup {
 
   def menu: List[Menu] =
     Menu(Loc("Home", List("index"), "Home")) ::
-    Menu(Loc("Feeds", List("feeds"), "Feeds")) ::
     User.sitemap
 
 }
