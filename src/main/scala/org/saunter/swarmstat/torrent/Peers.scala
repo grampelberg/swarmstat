@@ -27,11 +27,9 @@ import scalax.io.InputStreamResource
 
 class Peers(torrent: Info) {
 
-  def this(torrent: String) =
-    this(new Info(torrent))
-
   def current = {
-    val url = torrent.tracker + "?info_hash=" + torrent.info_hash
+    val url = (torrent.tracker + "?info_hash=" + torrent.info_hash
+               + "&numwant=10000")
     val data = InputStreamResource.url(url).reader.slurp
     BencodeDecoder.decode(data) match {
       case Some(x: Map[String, _]) => x.get("peers") match {
@@ -53,8 +51,8 @@ class Peers(torrent: Info) {
 
 object Peers {
   def from_file(torrent: String) =
-    new Info(InputStreamResource.file(torrent))
+    new Peers(new Info(InputStreamResource.file(torrent)))
 
   def from_url(torrent: String) =
-    new Info(InputStreamResource.url(torrent))
+    new Peers(new Info(InputStreamResource.url(torrent)))
 }

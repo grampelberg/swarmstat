@@ -25,7 +25,7 @@ import java.security.MessageDigest
 import org.saunter.bencode._
 import scalax.io.InputStreamResource
 
-class TorrentPart(the_path: String, the_size: Int) {
+class TorrentPart(the_path: String, the_size: Long) {
   val path = the_path
   val size = the_size
 
@@ -62,9 +62,9 @@ class Info(encoded_str: String) {
   def trackers = get_value("announce") :: announce_list
   def tracker = trackers(0)
   def creation = struct match {
-    case x: Map[String, Int] => x.get("creation date") match {
+    case x: Map[String, Long] => x.get("creation date") match {
       // *grumbles about millisecond accuracy*
-      case Some(x: Int) => new Date(x * 1000L)
+      case Some(x: Long) => new Date(x * 1000L)
       case _ => new Date()
     }
   }
@@ -92,7 +92,7 @@ class Info(encoded_str: String) {
     }
 
   def current_peers = peers.current
-  def size = files.foldLeft(0)( (x,y) => x + y.size )
+  def size = files.foldLeft(0L)( (x,y) => x + y.size )
 
   // Different ways to get string values from the torrent struct.
   def get_value[A](key: String, map: Map[String, _]): A =
@@ -125,8 +125,8 @@ class Info(encoded_str: String) {
       case _ => ""
     }
     val size = file_list.get("length") match {
-      case Some(x: Int) => x
-      case _ => 0
+      case Some(x: Long) => x
+      case _ => 0L
     }
     new TorrentPart(path, size)
   }
