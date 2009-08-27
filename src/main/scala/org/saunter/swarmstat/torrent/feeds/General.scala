@@ -35,15 +35,21 @@ object EZTV extends Feed {
   val feed = "http://www.ezrss.it/feed/"
 
   def fetch: Seq[String] =
-    (get_data(feed) \\ "item").map(_ \ "link").map(_.text)
+    get_data(feed) match {
+      case Some(x) => (x \\ "item").map(_ \ "link").map(_.text)
+      case _ => Seq()
+    }
 }
 
 class BasicFeed extends Feed {
   val feed = ""
 
   def fetch: Seq[String] =
-    (get_data(feed) \\ "item").map(_ \ "enclosure").map(
-      x => (x \ "@url").toString)
+    get_data(feed) match {
+      case Some(x) => (x \\ "item").map(_ \ "enclosure").map(
+        x => (x \ "@url").toString)
+      case _ => Seq()
+    }
 }
 
 object Mininova extends BasicFeed {

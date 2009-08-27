@@ -42,7 +42,6 @@ class DynamicTorrentView extends CometActor {
     MasterFeed ! AddWatcher(this)
     torrents = Torrent.findAll(OrderBy(Torrent.id, Descending),
                                MaxRows(max_view)).map(_.name)
-    MasterFeed ! UpdateFeeds
   }
 
   override def lowPriority: PartialFunction[Any, Unit] = {

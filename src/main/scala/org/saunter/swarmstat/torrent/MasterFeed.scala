@@ -17,7 +17,8 @@
 package org.saunter.swarmstat.torrent
 
 import net.liftweb.mapper._
-import net.liftweb.util.{Box,Full,Empty,Failure}
+import net.liftweb.util.{ActorPing,Box,Full,Empty,Failure}
+import net.liftweb.util.Helpers.TimeSpan
 import scala.actors.Actor
 import scala.actors.Actor._
 import scala.xml._
@@ -55,16 +56,24 @@ case class ActiveFeeds
 
 // XXX - Should probably be tracking *what* feed a torrent came from.
 trait Feed extends Actor {
+  val feed: String
+  val startup_delay = 1000 * 5
+  val timer = 1000 * 60 * 5 // 5 minutes
 
   def act = loop {
     react {
-      case Update => update
+      case Update => println("Update: " + feed); update
     }
   }
 
   // Convenience method to allow friendly fetching across all feeds.
-  def get_data(url: String): NodeSeq =
-    XML.load(url)
+  def get_data(url: String): Option[NodeSeq] =
+    try {
+      Some(XML.load(url))
+    } catch {
+      // Should shut a feed down if it fails too much.
+      case e => println("Feed Failure " + feed + "\n\t" + e); None
+    }
 
   def fetch: Seq[String]
 
@@ -101,6 +110,8 @@ trait Feed extends Actor {
     url.startsWith("http://")
 
   this.start
+  ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
+                                TimeSpan(timer))
 }
 
 
