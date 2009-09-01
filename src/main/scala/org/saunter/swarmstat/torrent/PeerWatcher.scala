@@ -20,78 +20,75 @@ import java.net.InetAddress
 import java.nio.ByteBuffer
 
 import net.liftweb.mapper._
-import net.liftweb.util.{Full,Empty}
+import net.liftweb.util.{ActorPing,Failure,Full,Empty}
+import net.liftweb.util.Helpers.TimeSpan
 import scala.actors.Actor
 import scala.actors.Actor._
 
 import org.saunter.swarmstat.model._
+import org.saunter.swarmstat.util._
+
+case class NewPeer(ip: String)
 
 // XXX - Need a global "failed tracker" place to do filtering on tracker lists.
 // XXX - Why not spawn a bunch of peer watchers for each tracker in the list.
 // Theoretically, I'll get back different peers for each tracker. For failed
 // trackers, just kill the actor.
-class PeerWatcher extends Actor {
-  var torrents: List[Info] = List()
-  val timer = 1000 * 60 * 5 // 5 minutes
+object PeerWatcher extends Actor with Listener {
+  private var peer_monitors: List[Actor] = List()
+  // Total number of torrents each monitor should watch
+  private val max_torrents = 20
+  private var watch_counter = 0
 
+  // XXX - Should updates be forceable?
   def act = loop {
-    react {
-      case Update => update_watched
-      case Watch(x: Info) => torrents = x :: torrents
+    react(handler orElse {
+      case NewPeer(ip: String) => notify_listeners(NewPeer(ip))
+      case NewTorrent(tor: Info) => watch_torrent(tor)
+    })
+  }
+
+  def notify_listeners(x: Any) =
+    listeners.foreach(_ ! x)
+
+  def total_watched(me: Actor) =
+    (me !? TotalWatched) match {
+      case Some(x: Int) => x
+      case _ => max_torrents
     }
-  }
 
-  def update_watched =
-    torrents.foreach(save_peers(_))
-
-  def save_peers(x: Info) =
-    Torrent.find(By(Torrent.info_hash, x.info_hash)) match {
-      case Full(y) => x.current_peers.foreach(z => peer(y, z))
-      case Failure => println("You failed.")
-      case Empty => println("Not possible .......")
+  def watch_torrent(tor: Info) = {
+    if (peer_monitors.length == 0 || watch_counter >= max_torrents) {
+      watch_counter = 0
+      peer_monitors = (new PeerWatcher) :: peer_monitors
     }
-
-  def peer(torrent: Torrent, ip: String) = {
-    Peer.create.torrent.apply(torrent.id).ip.apply(
-      ByteBuffer.wrap(InetAddress.getByName(ip).getAddress).getInt).save
-    PeerWatcher ! NewPeer(ip)
+    watch_counter += 1
+    peer_monitors(0) ! WatchTorrent(tor)
   }
 
-  this.start
-
-}
-
-object PeerWatcher extends Actor {
-  var watchers: List[Actor] = List()
-  var peer_monitors: List[Actors] = List()
-
-  def act = loop {
-    react {
-      case AddWatcher(me: Actor) => watchers = me :: watchers
-      case NewPeer(ip: String) => new_peer(ip)
-      case NewTorrent(x: Info) => add_torrent(x)
-      case Update => update_peers
-    }
-  }
-
-  def add_torrent(x: Info) =
-    peer_monitors(0) ! NewTorrent(x)
-
-  def new_peer(ip: String) = watchers.foreach(_ ! ip)
-
-  def start_peers = {
-    peer_monitors = (new PeerWatcher) :: peer_monitors
-    Torrent.findAll(MaxRows(100)).foreach(
-  }
-
-  def update_peers = None
-
-
-
-  start_peers
   MasterFeed ! AddWatcher(this)
-  this.start
 }
 
-case class NewPeer(x: String)
-case class Watch(x: Info)
+case class TotalWatched
+case class WatchTorrent(tor: Info)
+
+class PeerWatcher extends Actor {
+  private var watched_torrents: List[Info] = List()
+
+  def act = loop {
+    react {
+      case TotalWatched => Some(watched_torrents.length)
+      // case WatchTorrent(tor: Info) =>
+      //   watched_torrents = tor :: watched_torrents
+      case WatchTorrent(tor: Info) => fetch_peers(tor)
+    }
+  }
+
+  def fetch_peers(tor: Info) =
+    tor.current_peers.foreach(ip => {
+      println("Adding peer: " + ip)
+      PeerWatcher ! NewPeer(ip)
+    })
+
+  this.start
+}

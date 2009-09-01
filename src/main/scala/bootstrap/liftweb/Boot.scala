@@ -10,7 +10,7 @@ import _root_.java.sql.{Connection, DriverManager}
 import _root_.org.saunter.swarmstat.model._
 import _root_.javax.servlet.http.{HttpServletRequest}
 
-import org.saunter.swarmstat.torrent.MasterFeed
+import org.saunter.swarmstat.torrent.{MasterFeed,PeerWatcher}
 
 /**
   * A class that's instantiated early and run.  It allows the application
@@ -57,6 +57,7 @@ class Boot {
    * Startup the master feed fetcher.
    */
   MasterFeed
+  PeerWatcher
 }
 
 /**

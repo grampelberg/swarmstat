@@ -19,11 +19,14 @@
 
 package org.saunter.swarmstat.torrent
 
+import java.net.InetAddress
 import java.util.Date
+import java.util.Random
 import java.security.MessageDigest
 
 import org.saunter.bencode._
-import scalax.io.InputStreamResource
+import org.saunter.swarmstat.util._
+import scalax.io.ReaderResource
 
 class TorrentPart(the_path: String, the_size: Long) {
   val path = the_path
@@ -33,10 +36,10 @@ class TorrentPart(the_path: String, the_size: Long) {
     path + ":" + size
 }
 
-class Info(encoded_str: String) {
+class Info(url_ext: String) {
 
-  def this(input: InputStreamResource) =
-    this(input.reader.slurp)
+  val url = url_ext
+  val encoded_str = ReaderResource.url(url).slurp
 
   // Not sure the pieces should be kept in memory since they'll probably never
   // be used .... maybe need to sanitize this.
@@ -52,15 +55,17 @@ class Info(encoded_str: String) {
         case _ => ""
       }
     }
-  val peers = new Peers(this)
 
   def comment = get_value("comment")
   def encoding = get_value("encoding")
   // Maybe I should test the trackers before returning them? Could make this
   // immutable and set at startup if that was the case (especially since some
   // tracker entries don't really exist).
-  def trackers = get_value("announce") :: announce_list
-  def tracker = trackers(0)
+  var trackers = get_value("announce") :: announce_list
+  def tracker =
+    if (trackers.length > 0) {
+      Some(trackers((new Random) nextInt trackers.length))
+    } else { None }
   def creation = struct match {
     case x: Map[String, Long] => x.get("creation date") match {
       // *grumbles about millisecond accuracy*
@@ -91,7 +96,6 @@ class Info(encoded_str: String) {
       }
     }
 
-  def current_peers = peers.current
   def size = files.foldLeft(0L)( (x,y) => x + y.size )
 
   // Different ways to get string values from the torrent struct.
@@ -131,12 +135,39 @@ class Info(encoded_str: String) {
     new TorrentPart(path, size)
   }
 
+  def current_peers: List[String] =
+    tracker match {
+      case Some(x) => fetch_peers(x)
+      case None => List()
+    }
+
+  def fetch_peers(current_tracker: String): List[String] = {
+    val announce_url = ( current_tracker + "?info_hash=" + info_hash
+                        + "&numwant=10000")
+    try {
+      val data = WebFetch.url(announce_url)
+      BencodeDecoder.decode(data) match {
+        case Some(x: Map[String, _]) => x.get("peers") match {
+          case Some(x: String) => get_peer_list(x)
+          case _ => List()
+        }
+        case _ => List()
+      }
+    } catch {
+      case _ => {
+        println("Tracker failed: " + announce_url)
+        trackers -= current_tracker
+        List()
+      }
+    }
+  }
+
+  def get_peer_list(peers: String): List[String] =
+    List.range(0, peers.length/6).map(x => get_ip(peers.slice(0+6*x, 6+6*x)))
+
+  def get_ip(info: String): String =
+    InetAddress.getByAddress(
+      info.slice(0, 4).toArray.map(_.toByte)).getHostAddress
+
 }
 
-object Info {
-  def from_url(torrent: String) =
-    new Info(InputStreamResource.url(torrent))
-
-  def from_file(torrent: String) =
-    new Info(InputStreamResource.file(torrent))
-}

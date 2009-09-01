@@ -30,12 +30,16 @@ class Peers(torrent: Info) {
   def current = {
     val url = (torrent.tracker + "?info_hash=" + torrent.info_hash
                + "&numwant=10000")
-    val data = InputStreamResource.url(url).reader.slurp
-    BencodeDecoder.decode(data) match {
-      case Some(x: Map[String, _]) => x.get("peers") match {
-        case Some(x: String) => get_peer_list(x)
+    try {
+      val data = InputStreamResource.url(url).reader.slurp
+      BencodeDecoder.decode(data) match {
+        case Some(x: Map[String, _]) => x.get("peers") match {
+          case Some(x: String) => get_peer_list(x)
+          case _ => List()
+        }
         case _ => List()
       }
+    } catch {
       case _ => List()
     }
   }
@@ -50,9 +54,6 @@ class Peers(torrent: Info) {
 }
 
 object Peers {
-  def from_file(torrent: String) =
-    new Peers(new Info(InputStreamResource.file(torrent)))
-
   def from_url(torrent: String) =
-    new Peers(new Info(InputStreamResource.url(torrent)))
+    new Peers(new Info(torrent))
 }

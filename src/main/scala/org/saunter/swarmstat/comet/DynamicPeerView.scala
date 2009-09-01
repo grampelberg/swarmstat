@@ -28,6 +28,7 @@ import scala.xml._
 
 import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.torrent._
+import org.saunter.swarmstat.util._
 
 class DynamicPeerView extends CometActor {
   override def defaultPrefix = Full("peer")
@@ -39,15 +40,13 @@ class DynamicPeerView extends CometActor {
   }
 
   def render =
-    bind("view" -> <ul>{peers.flatMap(e => peerview(ip_string(e)))}</ul>)
+    bind("view" -> <ul>{peers.flatMap(e => peerview(e))}</ul>)
 
   def ip_string(ip: Int) =
     ByteBuffer.allocate(4).putInt(ip).array.map(_.toInt).mkString(".")
 
   override def localSetup = {
-    PeerWatcher ! AddWatcher(this)
-    peers = Peers.findAll(OrderBy(Peers.id, Descending),
-                          MaxRows(max_view)).map(ip_string(_.ip))
+    PeerWatcher ! Add(this)
   }
 
   override def lowPriority: PartialFunction[Any, Unit] = {

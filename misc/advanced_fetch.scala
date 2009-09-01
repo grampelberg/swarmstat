@@ -1,4 +1,5 @@
-/* Copyright (C) 2009 Thomas Rampelberg <pyronicide@saunter.org>
+/*
+ * Copyright (C) 2009 Thomas Rampelberg <pyronicide@saunter.com>
 
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -14,28 +15,16 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-package org.saunter.swarmstat.torrent
+import org.apache.http._
+import org.apache.http.client._
+import org.apache.http.client.methods._
+import org.apache.http.impl.client._
+import org.apache.http.params._
 
-import scala.actors.Actor
-import scala.actors.Actor._
+import scalax.io.InputStreamResource
 
+val client = new DefaultHttpClient((new BasicHttpParams).setParameter("http.socket.timeout", 100))
+val get = new HttpGet("http://google.com")
+val resp = client.execute(get).getEntity()
 
-object PeerData extends Actor {
-  def act = loop {
-    react {
-      NewTorrent(x: Info) => watch_peers(x)
-    }
-  }
-
-  def watch_peers(torrent: Info) =
-    torrent.peers.foreach(save_peer(_))
-
-  def save_peer(peer: String) = {
-    Peer.create.ip.apply(
-  }
-
-  MasterFeed ! AddWatcher(this)
-  this.start
-}
-
-case class NewPeer(x: String)
+val stream = InputStreamResource(resp.getContent)
