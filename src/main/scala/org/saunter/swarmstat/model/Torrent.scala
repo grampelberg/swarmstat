@@ -19,8 +19,9 @@
 
 package org.saunter.swarmstat.model
 
-import net.liftweb._
 import net.liftweb.mapper._
+
+import org.saunter.swarmstat.util._
 
 // XXX - What do the IdPKs end up being ... need to be UUIDs
 class Torrent extends KeyedMapper[String, Torrent] {
@@ -28,12 +29,12 @@ class Torrent extends KeyedMapper[String, Torrent] {
   def primaryKeyField = info_hash
 
   // Fields
-  object info_hash extends MappedPoliteString(this, 20)
+  object info_hash extends UUID(this)
   object creation extends MappedDateTime(this)
   object name extends MappedPoliteString(this, 128)
   object trackers extends HasManyThrough(this, Tracker, Relationship,
-                                         Relationship.torrent,
-                                         Relationship.tracker)
+                                         Relationship.tracker,
+                                         Relationship.torrent)
 
   // Convenience Methods
   def addTracker(track: Tracker) = {
@@ -43,7 +44,7 @@ class Torrent extends KeyedMapper[String, Torrent] {
 
   def removeTracker(track: Tracker) = {
     Relationship.find(By(Relationship.torrent, this.info_hash),
-                      By(Relationship.tracker, track.id)).foreach(
+                      By(Relationship.tracker, track.uuid)).foreach(
                         Relationship.delete_!)
     trackers.reset
   }

@@ -87,18 +87,23 @@ trait Feed extends Actor {
     }
 
   def new_feed_?(tor: Info): Boolean =
-    TorrentSource.find(By(TorrentSource.torrent, tor.info_hash),
-                     By(TorrentSource.url, tor.url)) match {
-      case Full(_) => false
-      case Empty => true
-      case _ => println("Failed: " + msg); true
+    tor.url match {
+      case Some(url) => {
+        TorrentSource.find(By(TorrentSource.torrent, tor.info_hash),
+                           By(TorrentSource.url, url)) match {
+                             case Full(_) => false
+                             case Empty => true
+                             case _ => true
+                           }
+      }
+      case _ => true
     }
 
   def new_torrent_?(hash: String): Boolean =
     Torrent.find(By(Torrent.info_hash, hash)) match {
       case Full(_) => false
       case Empty => true
-      case _ => println("Failed: " + msg); true
+      case _ => true
     }
 
   def validate(url: String) =

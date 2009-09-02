@@ -19,12 +19,8 @@
 
 package org.saunter.swarmstat.model
 
-import net.liftweb._
 import net.liftweb.mapper._
-import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.util._
-import org.saunter.swarmstat.model._
+import net.liftweb.util.Helpers._
 
 // XXX - Need to get rid of the PK here.
 class Peer extends LongKeyedMapper[Peer] with IdPK {
@@ -33,7 +29,7 @@ class Peer extends LongKeyedMapper[Peer] with IdPK {
   object relationship extends MappedLongForeignKey(this, Relationship)
   object ip extends MappedInt(this)
   object when extends MappedDateTime(this) {
-    override def defaultValue = Helpers.timeNow
+    override def defaultValue = timeNow
   }
 }
 

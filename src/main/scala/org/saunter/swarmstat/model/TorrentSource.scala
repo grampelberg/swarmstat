@@ -16,17 +16,16 @@
 
 package org.saunter.swarmstat.model
 
-import net.liftweb._
 import net.liftweb.mapper._
-import net.liftweb.util._
+import net.liftweb.util.Helpers._
 
 class TorrentSource extends LongKeyedMapper[TorrentSource] with IdPK {
   def getSingleton = TorrentSource
 
-  object torrent extends MappedLongForeignKey(this, Torrent)
+  object torrent extends MappedStringForeignKey(this, Torrent, 20)
   object url extends MappedPoliteString(this, 128)
   object first_seen extends MappedDateTime(this) {
-    override def defaultValue = Helpers.timeNow
+    override def defaultValue = timeNow
   }
 }
 

@@ -23,7 +23,9 @@ class Boot {
 
     // where to search snippet
     LiftRules.addToPackages("org.saunter.swarmstat")
-    Schemifier.schemify(true, Log.infoF _, User, Torrent, Peer)
+    Schemifier.schemify(true, Log.infoF _,
+                        Peer, Relationship, Torrent, TorrentSource,
+                        TorrentState, Tracker, User)
 
     LiftRules.setSiteMap(SiteMap(MenuSetup.menu:_*))
 
