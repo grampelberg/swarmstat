@@ -44,6 +44,8 @@
   - Peer needs a link to tracker
   - add valdiation inside the models
   - setup the indexes correctly
+  - add UUIDKeyedMapper and UUIDKeyedMetaMapper (and allow UUID to be mixed in
+    just like IdPK).
 
 - tracker communication
   - for trackers that support it, add multiple info_hash/request

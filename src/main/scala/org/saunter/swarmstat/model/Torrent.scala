@@ -23,7 +23,6 @@ import net.liftweb.mapper._
 
 import org.saunter.swarmstat.util._
 
-// XXX - What do the IdPKs end up being ... need to be UUIDs
 class Torrent extends KeyedMapper[String, Torrent] {
   def getSingleton = Torrent
   def primaryKeyField = info_hash
