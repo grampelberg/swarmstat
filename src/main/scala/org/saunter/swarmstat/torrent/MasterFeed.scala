@@ -97,11 +97,12 @@ trait Feed extends Actor {
     }
   }
 
+  // XXX - Needs to be reworked!
   def save(obj: Info) =
     Torrent.find(By(Torrent.info_hash, obj.info_hash)) match {
       case Full(_) => println("Duplicate: " + obj.name); false
       case Empty => Torrent.create.info_hash.apply(
-        obj.info_hash).creation.apply(obj.creation).name.apply(obj.name).url.apply(obj.url).save; true
+        obj.info_hash).creation.apply(obj.creation).name.apply(obj.name).save; true
       case Failure(msg, _, _) => println(
         "Failure: " + obj.name + "\n\tBecause: " + msg); false
     }
