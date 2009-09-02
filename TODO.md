@@ -42,6 +42,8 @@
   - info_hash should be actual binary data to save space
   - use info_hash as the PK instead of an actual PK
   - Peer needs a link to tracker
+  - add valdiation inside the models
+  - setup the indexes correctly
 
 - tracker communication
   - for trackers that support it, add multiple info_hash/request
