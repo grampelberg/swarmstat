@@ -25,7 +25,10 @@
   - rename to FeedWatcher (both object and class?)
   - don't silently ignore duplicates, check the hostname. If it's different,
     log that somehow.
-  - allow tcp torrent sources
+  - allow udp torrent sources
+  - when new sources are discovered, how does the info object for the torrent
+    get updated? Or, should the torrent objects periodically check the db for
+    new sources?
 
 - PeerWatcher
   - need to globally disable trackers that aren't up

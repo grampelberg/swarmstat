@@ -96,7 +96,7 @@ trait Feed extends Actor {
                              case _ => true
                            }
       }
-      case _ => true
+      case _ => false
     }
 
   def new_torrent_?(hash: String): Boolean =
