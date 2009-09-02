@@ -66,7 +66,7 @@ object PeerWatcher extends Actor with Listener {
     peer_monitors(0) ! WatchTorrent(tor)
   }
 
-  MasterFeed ! AddWatcher(this)
+  FeedWatcher ! Add(this)
 }
 
 case class TotalWatched

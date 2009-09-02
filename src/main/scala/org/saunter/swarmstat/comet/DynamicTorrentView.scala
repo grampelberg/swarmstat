@@ -25,6 +25,7 @@ import scala.xml._
 
 import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.torrent._
+import org.saunter.swarmstat.util._
 
 class DynamicTorrentView extends CometActor {
   override def defaultPrefix = Full("torrent")
@@ -39,8 +40,9 @@ class DynamicTorrentView extends CometActor {
     bind("view" -> <ul>{torrents.flatMap(e => torrentview(e))}</ul>)
 
   override def localSetup = {
-    MasterFeed ! AddWatcher(this)
-    torrents = Torrent.findAll(OrderBy(Torrent.id, Descending),
+    FeedWatcher ! Add(this)
+    // XXX - This isn't valid anymore!!!!!!!
+    torrents = Torrent.findAll(OrderBy(Torrent.info_hash, Descending),
                                MaxRows(max_view)).map(_.name)
   }
 

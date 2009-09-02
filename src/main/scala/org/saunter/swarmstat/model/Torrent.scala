@@ -23,8 +23,9 @@ import net.liftweb._
 import net.liftweb.mapper._
 
 // XXX - What do the IdPKs end up being ... need to be UUIDs
-class Torrent extends LongKeyedMapper[Torrent] with IdPK {
+class Torrent extends KeyedMapper[String, Torrent] {
   def getSingleton = Torrent
+  def primaryKeyField = info_hash
 
   // Fields
   object info_hash extends MappedPoliteString(this, 20)
@@ -41,11 +42,11 @@ class Torrent extends LongKeyedMapper[Torrent] with IdPK {
   }
 
   def removeTracker(track: Tracker) = {
-    Relationship.find(By(Relationship.torrent, this.id),
+    Relationship.find(By(Relationship.torrent, this.info_hash),
                       By(Relationship.tracker, track.id)).foreach(
                         Relationship.delete_!)
     trackers.reset
   }
 }
 
-object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]
+object Torrent extends Torrent with KeyedMetaMapper[String, Torrent]

@@ -36,10 +36,25 @@ class TorrentPart(the_path: String, the_size: Long) {
     path + ":" + size
 }
 
-class Info(url_ext: String) {
+class Info(url_ext: List[String]) {
 
-  val url = url_ext
-  val encoded_str = ReaderResource.url(url).slurp
+  def this(url_ext: String) =
+    this(List(url_ext))
+
+  var urls = url_ext
+  def url =
+    if (urls.length > 0) {
+      Some(urls((new Random) nextInt urls.length))
+    } else { None }
+
+  val encoded_str: String =
+    url match {
+      case Some(x) =>
+        try {
+          WebFetch.url(x)
+        } catch { case _ => urls -= x; encoded_str }
+      case None => ""
+    }
 
   // Not sure the pieces should be kept in memory since they'll probably never
   // be used .... maybe need to sanitize this.
@@ -66,6 +81,7 @@ class Info(url_ext: String) {
     if (trackers.length > 0) {
       Some(trackers((new Random) nextInt trackers.length))
     } else { None }
+
   def creation = struct match {
     case x: Map[String, Long] => x.get("creation date") match {
       // *grumbles about millisecond accuracy*
@@ -137,27 +153,30 @@ class Info(url_ext: String) {
 
   def current_peers: List[String] =
     tracker match {
-      case Some(x) => fetch_peers(x)
+      case Some(x) => fetch_peers(x) match {
+        case Some(x) => x
+        case None => List()
+      }
       case None => List()
     }
 
-  def fetch_peers(current_tracker: String): List[String] = {
+  def fetch_peers(current_tracker: String): Option[List[String]] = {
     val announce_url = ( current_tracker + "?info_hash=" + info_hash
                         + "&numwant=10000")
     try {
       val data = WebFetch.url(announce_url)
       BencodeDecoder.decode(data) match {
         case Some(x: Map[String, _]) => x.get("peers") match {
-          case Some(x: String) => get_peer_list(x)
-          case _ => List()
+          case Some(x: String) => Some(get_peer_list(x))
+          case _ => None
         }
-        case _ => List()
+        case _ => None
       }
     } catch {
       case _ => {
         println("Tracker failed: " + announce_url)
         trackers -= current_tracker
-        List()
+        None
       }
     }
   }

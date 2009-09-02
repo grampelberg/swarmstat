@@ -35,18 +35,24 @@ object WebFetch {
   def get_params =
     (new BasicHttpParams) setParameter("http.socket.timeout", socket_timeout)
 
-  def url(uri: String) = {
+  def url_stream(uri: String) = {
     val client = new DefaultHttpClient(get_params)
     val get = new HttpGet(uri)
-    val instream = client.execute(get).getEntity.getContent
     try {
-      println("Fetching: " + uri)
-      InputStreamResource(instream).reader.slurp
-    } catch {
-      case _ => println("Failed to fetch: " + uri); ""
+      client.execute(get).getEntity.getContent
     } finally {
-      instream.close()
       client.getConnectionManager.shutdown
     }
   }
+
+  def url(uri: String) = {
+    val instream = url_stream(uri)
+    try {
+      InputStreamResource(instream).reader.slurp
+    } catch {
+      case _ => ""
+    } finally {
+      instream.close
+    }
+}
 }

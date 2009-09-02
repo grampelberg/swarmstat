@@ -36,7 +36,7 @@ class Tracker extends LongKeyedMapper[Tracker] with IdPK {
   }
 
   def removeTorrent(tor: Torrent) = {
-    Relationship.find(By(Relationship.torrent, tor.id),
+    Relationship.find(By(Relationship.torrent, tor.info_hash),
                       By(Relationship.tracker, this.id)).foreach(
                         Relationship.delete_!)
     torrents.reset

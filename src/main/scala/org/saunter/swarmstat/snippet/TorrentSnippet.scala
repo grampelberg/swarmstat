@@ -53,15 +53,4 @@ class TorrentSnippet {
       <torrent:view>Loading...</torrent:view>
     </lift:comet>
   }
-
-  def updateFeeds(html: NodeSeq) = {
-    def all() =
-      MasterFeed ! UpdateFeeds
-
-    def doBind(html: NodeSeq) =
-      bind("feed", html, "update" -> submit("Update", all))
-
-    doBind(html)
-  }
-
 }
