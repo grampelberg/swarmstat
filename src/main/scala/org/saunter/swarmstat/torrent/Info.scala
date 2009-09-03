@@ -19,7 +19,7 @@
 
 package org.saunter.swarmstat.torrent
 
-import java.net.InetAddress
+import java.net.URI
 import java.util.Date
 import java.util.Random
 import java.security.MessageDigest
@@ -61,12 +61,12 @@ class Info(url_ext: List[String]) {
   val struct = BencodeDecoder.decode(encoded_str).get
   // This is going to end up getting used all over the place and I'd like to
   // make sure it only gets calculated once.
-  val info_hash: String = hex_encoder(info_hash_raw)
-  val info_hash_raw: Seq[Bytes] =
+  def info_hash: String = WebFetch.escape(info_hash_raw)
+  val info_hash_raw: String =
     struct match {
       case x: Map[String, _] => x.get("info") match {
         case Some(x) => MessageDigest.getInstance("SHA").digest(
-          BencodeEncoder.encode(x).getBytes)
+          BencodeEncoder.encode(x).getBytes).mkString
         // XXX - Really need to raise an error in this case.
         case _ => ""
       }
@@ -132,14 +132,6 @@ class Info(url_ext: List[String]) {
       }
     }
 
-  // I'm really cranky about this but apparently URLEncoder.encode is a pile of
-  // crap and does " " -> "+" instead of " " -> "%20" like it should.
-  def hex_encoder(input: Array[Byte]): String =
-    input.map( x => (0xFF & x) match {
-      case x if x < 16 => "0" + Integer.toHexString(x)
-      case x => Integer.toHexString(x)
-    } ).foldLeft("")( (x, y) => x + "%" + y )
-
   def build_part(file_list: Map[String, _]) = {
     val path = file_list.get("path") match {
       case Some(x: List[String]) => x.mkString("/")
@@ -151,43 +143,5 @@ class Info(url_ext: List[String]) {
     }
     new TorrentPart(path, size)
   }
-
-  def current_peers: List[String] =
-    tracker match {
-      case Some(x) => fetch_peers(x) match {
-        case Some(x) => x
-        case None => List()
-      }
-      case None => List()
-    }
-
-  def fetch_peers(current_tracker: String): Option[List[String]] = {
-    val announce_url = ( current_tracker + "?info_hash=" + info_hash
-                        + "&numwant=10000")
-    try {
-      val data = WebFetch.url(announce_url)
-      BencodeDecoder.decode(data) match {
-        case Some(x: Map[String, _]) => x.get("peers") match {
-          case Some(x: String) => Some(get_peer_list(x))
-          case _ => None
-        }
-        case _ => None
-      }
-    } catch {
-      case _ => {
-        println("Tracker failed: " + announce_url)
-        trackers -= current_tracker
-        None
-      }
-    }
-  }
-
-  def get_peer_list(peers: String): List[String] =
-    List.range(0, peers.length/6).map(x => get_ip(peers.slice(0+6*x, 6+6*x)))
-
-  def get_ip(info: String): String =
-    InetAddress.getByAddress(
-      info.slice(0, 4).toArray.map(_.toByte)).getHostAddress
-
 }
 

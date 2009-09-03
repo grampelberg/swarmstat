@@ -16,23 +16,36 @@
 
 package org.saunter.swarmstat.torrent
 
+import java.net.InetAddress
+
+import net.liftweb.util.Helpers._
 
 import org.saunter.bencode._
 
 /*
  * group scrape requests by torrent
  * lookup multiple trackers
+ * handle failure reason if it's listed (log)
+ *
+ * announce specific:
+ * set compact=1
+ * issue a tracker id?
+ * obey interval/min interval
  */
 class Scrape(announce_url: String, info_hashes: List[String]) {
 
+  // There has gotta be a better way to do this.
   val url =
-    announce_url.replaceAll("announce", "scrape") + "?info_hash=" +
-      info_hashes.mkString("&info_hash=")
+    appendParams(announce_url.replaceAll("announce", "scrape"),
+                 info_hashes.map(("info_hash", _)))
 
   def fetch =
-    BencodeDecoder.decode(WebFetch(url))
+    BencodeDecoder.decode(WebFetch(url)) match {
+      case Some(x: Map[String, _]) => x
+      case _ => Map()
+    }
 
-  val data =
+  var data =
     fetch match {
       case Some(x: Map[String, _]) => x.get("files") match {
         case Some(x: Map[String, Map[String, Int]]) => x
@@ -44,27 +57,67 @@ class Scrape(announce_url: String, info_hashes: List[String]) {
   def torrent_stats(info_hash: String) = None
   def torrent_stats(info_hash: Seq[Byte]) =
     data.get(info_hash.mkString) match {
-      case Some(x: Map[String, Int]) => x
+      case Some(x: Map[String, Int]) => Some(x)
       case _ => Map()
     }
 }
 
 
+class Announce(announce_url: String, info_hash: String) {
+
+  val url =
+    appendParams(announce_url,
+                 List(("info_hash", info_hash),
+                    ("numwant", 10000), ("compact", 1)))
+
+  def fetch =
+    BencodeDecoder.decode(WebFetch(url)) match {
+      case Some(x: Map[String, _]) => x
+      case _ => Map()
+    }
+
+  var data = fetch
+
+  def fetch_peers =
+    data.get("peers") match {
+      case Some(x: Map[String, _]) => Some(get_peer_list(x))
+      case _ => None
+    }
+
+  def get_peer_list(peers: String): List[String] =
+    List.range(0, peers.length/6).map(x => get_ip(peers.slice(0+6*x, 6+6*x)))
+
+  def get_ip(info: String): String =
+    InetAddress.getByAddress(
+      info.slice(0, 4).toArray.map(_.toByte)).getHostAddress
+
+}
+
 class State(tor: Info) {
 
   val scrape = tor.url match {
-    case Some(x) => new Scrape(x, tor.info_hash_raw)
+    case Some(x) => new Scrape(x, List(tor.info_hash))
     case _ => None
   }
 
-  def torrent_info(stat: String) =
-    scrape.torrent_stats(tor.info_hash_raw).get("complete") match {
-      case Some(x) => x
+  val announce = tor.url match {
+    case Some(x) => new Announce(x, tor.info_hash)
+    case _ => None
+  }
+
+  def scrape_info(stat: String) =
+    scrape.torrent_stats(tor.info_hash_raw) match {
+      case Some(x) => x.get("complete") match {
+        case Some(x) => x
+        case _ => 0
+      }
       case _ => 0
     }
 
-  val seed_count = torrent_info("complete")
-  val peer_count = torrent_info("incomplete")
-  val total_count = torrent_info("downloaded")
+  def seed_count = scrape_info("complete")
+  def peer_count = scrape_info("incomplete")
+  def total_count = scrape_info("downloaded")
 
+  def peers =
+    announce.fetch_peers
 }

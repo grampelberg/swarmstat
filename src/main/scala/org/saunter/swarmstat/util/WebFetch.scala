@@ -21,6 +21,7 @@
 
 package org.saunter.swarmstat.util
 
+import java.net.URI
 import org.apache.http._
 import org.apache.http.client._
 import org.apache.http.client.methods._
@@ -34,6 +35,9 @@ object WebFetch {
 
   def get_params =
     (new BasicHttpParams) setParameter("http.socket.timeout", socket_timeout)
+
+  def escape(uri: String) =
+    URLEncoder.encoder(uri).replaceAll("\\+", "%20")
 
   def url_stream(uri: String) = {
     val client = new DefaultHttpClient(get_params)
