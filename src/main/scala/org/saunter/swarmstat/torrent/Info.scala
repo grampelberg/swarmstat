@@ -61,11 +61,12 @@ class Info(url_ext: List[String]) {
   val struct = BencodeDecoder.decode(encoded_str).get
   // This is going to end up getting used all over the place and I'd like to
   // make sure it only gets calculated once.
-  val info_hash: String =
+  val info_hash: String = hex_encoder(info_hash_raw)
+  val info_hash_raw: Seq[Bytes] =
     struct match {
       case x: Map[String, _] => x.get("info") match {
-        case Some(x) => hex_encoder(MessageDigest.getInstance("SHA").digest(
-          BencodeEncoder.encode(x).getBytes))
+        case Some(x) => MessageDigest.getInstance("SHA").digest(
+          BencodeEncoder.encode(x).getBytes)
         // XXX - Really need to raise an error in this case.
         case _ => ""
       }
