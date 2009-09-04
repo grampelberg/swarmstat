@@ -123,7 +123,7 @@ class Announce(announce_url: String, info_hash: String) {
   def refresh = data = fetch
 }
 
-class Tracker(announce_url: String, info_hash: String) {
+class TrackerSnapshot(announce_url: String, info_hash: String) {
   val scrape = new Scrape(announce_url, info_hash)
   val announce = new Announce(announce_url, info_hash)
 
@@ -158,7 +158,7 @@ class State(tor: Info) {
   println("Name: " + tor.name)
 
   val trackers =
-    tor.trackers.map(new Tracker(_, tor.info_hash_raw))
+    tor.trackers.map(new TrackerSnapshot(_, tor.info_hash_raw))
 
   def seed_count = trackers.map(_.seed_count).reduceLeft(_+_)
   def peer_count = trackers.map(_.peer_count).reduceLeft(_+_)

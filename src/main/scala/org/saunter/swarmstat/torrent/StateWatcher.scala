@@ -57,20 +57,20 @@ class StateWatcher extends Actor {
 
   def tracker_id(tracker: String) =
     new_tracker_?(tracker) match {
-      case Some(x: Tracker) => x.uuid
-      case None => Tracker.create.hostname(tracker).saveMe.uuid
+      case Some(x: Tracker) => x.uuid.is
+      case None => Tracker.create.hostname(tracker).saveMe.uuid.is
     }
 
-  def relationship_id(tor_id: String, tracker_id: String): Long =
-    new_relationship_?(tor_id, tracker_id) match {
-      case Some(x: Relationship) => x.id
+  def relationship_id(tor_id: String, track_id: String): Long =
+    new_relationship_?(tor_id, track_id) match {
+      case Some(x: Relationship) => x.id.is
       case None => Relationship.create.torrent(tor_id).tracker(
-        tracker_id).saveMe.id.is
+        track_id).saveMe.id.is
     }
 
-  def save_state(state: org.saunter.swarmstat.torrent.Tracker,
+  def save_state(state: TrackerSnapshot,
                  info_hash: String) = {
-    val rel_id = relationship_id(info_hash, state.hostname)
+    val rel_id = relationship_id(info_hash, tracker_id(state.hostname))
     TorrentState.create.relationship(rel_id).seeds(
       state.seed_count).peers(state.peer_count).downloaded(
       state.total_count).save
