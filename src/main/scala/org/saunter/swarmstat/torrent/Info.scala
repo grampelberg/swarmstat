@@ -64,7 +64,7 @@ class Info(url_ext: List[String]) {
       // XXX - Debugging only, get rid of this crap.
       case Some(y) => Some(y)
       case None => {
-        println("Error decoding: " + url)
+        println("Error decoding: " + url.get)
         None
       }
     }
@@ -89,10 +89,10 @@ class Info(url_ext: List[String]) {
   // Maybe I should test the trackers before returning them? Could make this
   // immutable and set at startup if that was the case (especially since some
   // tracker entries don't really exist).
-  var trackers = get_value("announce") :: announce_list
+  var trackers = Set((get_value("announce") :: announce_list): _*).toList
   def tracker =
     if (trackers.length > 0) {
-      Some(trackers((new Random) nextInt trackers.length))
+      Some(trackers(0))
     } else { None }
 
   def creation = struct match {

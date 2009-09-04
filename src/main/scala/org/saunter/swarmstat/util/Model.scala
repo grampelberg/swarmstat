@@ -34,7 +34,10 @@ class UUID[T<:Mapper[T]](
         colName+" CHAR("+maxLen+") NOT NULL "
 }
 
-class UUIDForeignKey[T<:Mapper[T],O<:KeyedMapper[String, O]](override val fieldOwner: T, foreign: => KeyedMetaMapper[String, O]) extends MappedStringForeignKey[T,O](fieldOwner, foreign, 20) {
-  override def fieldCreatorString(dbType: DriverType, colName: String): String =
+class UUIDForeignKey[T<:Mapper[T],O<:KeyedMapper[String, O]](
+  override val fieldOwner: T, foreign: => KeyedMetaMapper[String, O])
+  extends MappedStringForeignKey[T,O](fieldOwner, foreign, 20) {
+    override def fieldCreatorString(dbType: DriverType,
+                                    colName: String): String =
     colName + " VARCHAR(" + maxLen + ")"
 }

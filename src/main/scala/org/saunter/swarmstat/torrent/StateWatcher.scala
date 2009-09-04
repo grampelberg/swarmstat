@@ -51,15 +51,51 @@ class StateWatcher extends Actor {
 
   def act = loop {
     react {
-      case NewTorrent(x: Info) => get_state(x)
+      case WatchTorrent(x: Info) => get_state(x)
     }
   }
 
-  def get_state(tor: Info) = {
-    val state = new State(tor)
-    println("Seed: " + state.seed_count + "\tPeer: " + state.seed_count +
-            "\tTotal: " + state.total_count)
+  def tracker_id(tracker: String) =
+    new_tracker_?(tracker) match {
+      case Some(x) => x.uuid
+      case None => Tracker.create.hostname(tracker).save.uuid
+    }
+
+  def relationship_id(torrent_id: String, tracker_id: String)
+    new_relationship_?(torrent_id, tracker_id) match {
+      case Some(x) => x.id
+      case None => Relationship.create.torrent(torrent_id).tracker(
+        tracker_id).save.id
+    }
+
+  def save_state(state: Tracker, info_hash: String) = {
+    val rel_id = relationship_id(info_hash, state.hostname)
+    TorrentState.create.relationship(rel_id).seeds(
+      state.seed_count).peers(state.peer_count).downloaded(
+      state.total_count).save
+    state.peer_list.foreach(save_peer(_, rel_id))
   }
 
+  def save_peer(ip: String, rel_id: String) =
+    Peer.create.relationship(rel_id).id(Conversion.ip(ip)).save
 
+  def get_state(tor: Info) = {
+    val state = new State(tor)
+    state.trackers.foreach(save_state(_, tor.info_has_raw))
+  }
+
+  def new_tracker_?(track: String): Boolean =
+    Tracker.find(By(Tracker.hostname, track)) match {
+      case Full(x) => Some(x)
+      case _ => None
+    }
+
+  def new_relationship_?(torrent_id: String, tracker_id: String) =
+    Relationship.find(By(Relationship.torrent, torrent_id),
+                      By(Relationship.tracker, tracker_id)) match {
+      case Full(x) => Some(x)
+      case _ => None
+    }
+
+  this.start
 }

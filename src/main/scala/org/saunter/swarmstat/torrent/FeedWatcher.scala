@@ -71,33 +71,26 @@ trait Feed extends Actor {
 
   def store(raw: String): Unit =
     try {
-      if (validate(raw)) {
+      if (validate(raw) && new_feed_?(raw)) {
         val tor = new Info(raw)
+        if (tor.name == "") { return }
         if (new_torrent_?(tor.info_hash_raw)) {
           Torrent.create.info_hash(tor.info_hash_raw).name(tor.name).creation(
             tor.creation).save
           FeedWatcher ! NewTorrent(tor)
         }
-        if (new_feed_?(tor)) {
-          TorrentSource.create.url(raw).torrent(tor.info_hash_raw).save
-          FeedWatcher ! NewSource(tor)
-        }
+        TorrentSource.create.url(raw).torrent(tor.info_hash_raw).save
+        FeedWatcher ! NewSource(tor)
       }
     } catch {
       case e => e.printStackTrace
     }
 
-  def new_feed_?(tor: Info): Boolean =
-    tor.url match {
-      case Some(url) => {
-        TorrentSource.find(By(TorrentSource.torrent, tor.info_hash_raw),
-                           By(TorrentSource.url, url)) match {
-                             case Full(_) => false
-                             case Empty => true
-                             case _ => true
-                           }
-      }
-      case _ => false
+  def new_feed_?(tor: String): Boolean =
+    TorrentSource.find(By(TorrentSource.url, tor)) match {
+      case Full(_) => false
+      case Empty => true
+      case _ => true
     }
 
   def new_torrent_?(hash: String): Boolean =

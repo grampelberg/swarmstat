@@ -22,6 +22,7 @@
 package org.saunter.swarmstat.util
 
 import java.io.InputStreamReader
+import java.lang.Integer
 import java.net.URLEncoder
 import org.apache.http._
 import org.apache.http.client._
@@ -37,8 +38,28 @@ object WebFetch {
   def get_params =
     (new BasicHttpParams) setParameter("http.socket.timeout", socket_timeout)
 
+  def paramsToUrlParams(params: List[(String, String)]): String =
+    params.map {
+      case (n, v) => escape(n) + "=" + escape(v)
+    }.mkString("&")
+
+  def appendParams(url: String, params: Seq[(String, String)]): String =
+    params.toList match {
+      case Nil => url
+      case xs if !url.contains("?") => url + "?" + paramsToUrlParams(xs)
+      case xs => url + "&" + paramsToUrlParams(xs)
+    }
+
   def escape(uri: String) =
     URLEncoder.encode(uri).replaceAll("\\+", "%20")
+
+  // I'm really cranky about this but apparently URLEncoder.encode is a pile of
+  // crap and does " " -> "+" instead of " " -> "%20" like it should.
+  def hex_encoder(input: Array[Byte]): String =
+    input.map( x => (0xFF & x) match {
+      case x if x < 16 => "0" + Integer.toHexString(x)
+      case x => Integer.toHexString(x)
+    } ).foldLeft("")( (x, y) => x + y )
 
   def url_stream(uri: String) = {
     val client = new DefaultHttpClient(get_params)

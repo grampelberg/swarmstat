@@ -17,6 +17,7 @@
 package org.saunter.swarmstat.model
 
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers._
 
 import org.saunter.swarmstat.util._
 
@@ -26,10 +27,13 @@ class Tracker extends KeyedMapper[String, Tracker] {
 
   // Fields
   object uuid extends UUID(this)
-  object announce_url extends MappedPoliteString(this, 128)
+  object hostname extends MappedPoliteString(this, 128)
   object torrents extends HasManyThrough(this, Torrent, Relationship,
                                          Relationship.torrent,
                                          Relationship.tracker)
+  object first_seen extends appedDateTime(this) {
+    override def defaultValue = timeNow
+  }
 
   // Convenience methods
   def addTorrent(tor: Torrent) = {

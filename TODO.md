@@ -51,6 +51,9 @@
   - setup the indexes correctly
   - add UUIDKeyedMapper and UUIDKeyedMetaMapper (and allow UUID to be mixed in
     just like IdPK).
+  - move new_*_? methods to somewhere common to ensure they're not sprinkled
+    everywhere randomly.
+  - create a mapped ip field that does the conversion from/to int for me
 
 - tracker communication
   - for trackers that support it, add multiple info_hash/request
@@ -75,3 +78,4 @@
 - info
   - go through and get the default "None"s removed. Should be raising an
     exception.
+  - handle port additions as the same tracker.
