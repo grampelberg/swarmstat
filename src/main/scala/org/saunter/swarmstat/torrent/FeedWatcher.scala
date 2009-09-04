@@ -74,14 +74,12 @@ trait Feed extends Actor {
       if (validate(raw)) {
         val tor = new Info(raw)
         if (new_torrent_?(tor.info_hash_raw)) {
-          println("New: " + tor.name)
           Torrent.create.info_hash(tor.info_hash_raw).name(tor.name).creation(
             tor.creation).save
           FeedWatcher ! NewTorrent(tor)
         }
         if (new_feed_?(tor)) {
-          println("Source: " + raw)
-          TorrentSource.create.url(raw).save
+          TorrentSource.create.url(raw).torrent(tor.info_hash_raw).save
           FeedWatcher ! NewSource(tor)
         }
       }

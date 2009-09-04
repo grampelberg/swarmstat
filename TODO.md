@@ -71,3 +71,7 @@
   - Unique key unusable
   - MappedStringForeignKey creates the db as if it's a BIGINT
     (gogo cut and paste?)
+
+- info
+  - go through and get the default "None"s removed. Should be raising an
+    exception.

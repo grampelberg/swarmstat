@@ -61,24 +61,27 @@ class Info(url_ext: List[String]) {
   // be used .... maybe need to sanitize this.
   val struct = fetch match {
     case Some(x: String) => BencodeDecoder.decode(x) match {
-      case Some(y) => y
+      // XXX - Debugging only, get rid of this crap.
+      case Some(y) => Some(y)
       case None => {
-
+        println("Error decoding: " + url)
+        None
       }
     }
-    case None => Map()
+    case None => None
   }
   // This is going to end up getting used all over the place and I'd like to
   // make sure it only gets calculated once.
   def info_hash: String = WebFetch.escape(info_hash_raw)
   val info_hash_raw: String =
     struct match {
-      case x: Map[String, _] => x.get("info") match {
+      case Some(x: Map[String, _]) => x.get("info") match {
         case Some(x) => MessageDigest.getInstance("SHA").digest(
           BencodeEncoder.encode(x).getBytes).map(_.toChar).mkString
         // XXX - Really need to raise an error in this case.
         case _ => ""
       }
+      case None => ""
     }
 
   def comment = get_value("comment")
@@ -93,17 +96,18 @@ class Info(url_ext: List[String]) {
     } else { None }
 
   def creation = struct match {
-    case x: Map[String, Long] => x.get("creation date") match {
+    case Some(x: Map[String, Long]) => x.get("creation date") match {
       // *grumbles about millisecond accuracy*
       case Some(x: Long) => new Date(x * 1000L)
       case _ => new Date()
     }
+    case None => new Date()
   }
   def by = get_value("created by")
   def name = get_value("info", "name")
   def files: List[TorrentPart] =
     struct match {
-      case x: Map[String, _] => x.get("info") match {
+      case Some(x: Map[String, _]) => x.get("info") match {
         case Some(x: Map[String, _]) => x.get("files") match {
           case Some(s: List[Map[String, _]]) => s.map(
             y => build_part(y))
@@ -111,15 +115,17 @@ class Info(url_ext: List[String]) {
         }
         case _ => List()
       }
+      case None => List()
     }
 
   def announce_list =
     struct match {
-      case x: Map[String, _] => x.get("announce-list") match {
+      case Some(x: Map[String, _]) => x.get("announce-list") match {
         case Some(x: List[List[String]]) => x.flatMap(
           x => x).filter(_.startsWith("http"))
         case _ => List()
       }
+      case None => List()
     }
 
   def size = files.foldLeft(0L)( (x,y) => x + y.size )
@@ -129,16 +135,20 @@ class Info(url_ext: List[String]) {
     map match { case x: Map[String, A] => x.get(key).get }
 
   def get_value(key: String): String =
-    struct match { case x: Map[String, _] => get_value(key, x) }
+    struct match {
+      case Some(x: Map[String, _]) => get_value(key, x)
+      case None => ""
+    }
 
   // XXX - Needs to be a better way to do this ... why not some kind of
   // factory? Take a look at ImmutableHashMapFactory.
   def get_value(key1: String, key2: String): String =
     struct match {
-      case x: Map[String, _] => x.get(key1) match {
+      case Some(x: Map[String, _]) => x.get(key1) match {
         case Some(x: Map[String, _]) => get_value(key2, x)
         case _ => ""
       }
+      case None => ""
     }
 
   def build_part(file_list: Map[String, _]) = {
