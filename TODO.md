@@ -29,6 +29,8 @@
   - when new sources are discovered, how does the info object for the torrent
     get updated? Or, should the torrent objects periodically check the db for
     new sources?
+  - When a bencodedecoder.decode fails, save the torrent to disk for looking
+    at in the future.
 
 - PeerWatcher
   - need to globally disable trackers that aren't up
@@ -58,3 +60,14 @@
 
 - ActorManagement
   - actively remove watchers that are dead.
+
+- State
+  - This needs help all over the place.
+  - Auto-fail trackers that aren't valid via. the Info object passed in (and
+    modify the state object.
+  - Group scrape requests ..... somehow, probably pass a scraper into the state
+
+- Lift bugs
+  - Unique key unusable
+  - MappedStringForeignKey creates the db as if it's a BIGINT
+    (gogo cut and paste?)

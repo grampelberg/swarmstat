@@ -19,6 +19,7 @@
 
 package org.saunter.swarmstat.torrent
 
+import java.io.Reader
 import java.net.URI
 import java.util.Date
 import java.util.Random
@@ -47,18 +48,26 @@ class Info(url_ext: List[String]) {
       Some(urls((new Random) nextInt urls.length))
     } else { None }
 
-  val encoded_str: String =
+  def fetch: Option[String] =
     url match {
       case Some(x) =>
         try {
-          WebFetch.url(x)
-        } catch { case _ => urls -= x; encoded_str }
-      case None => ""
+          Some(WebFetch.url(x))
+        } catch { case _ => urls -= x; fetch }
+      case None => None
     }
 
   // Not sure the pieces should be kept in memory since they'll probably never
   // be used .... maybe need to sanitize this.
-  val struct = BencodeDecoder.decode(encoded_str).get
+  val struct = fetch match {
+    case Some(x: String) => BencodeDecoder.decode(x) match {
+      case Some(y) => y
+      case None => {
+
+      }
+    }
+    case None => Map()
+  }
   // This is going to end up getting used all over the place and I'd like to
   // make sure it only gets calculated once.
   def info_hash: String = WebFetch.escape(info_hash_raw)
@@ -66,7 +75,7 @@ class Info(url_ext: List[String]) {
     struct match {
       case x: Map[String, _] => x.get("info") match {
         case Some(x) => MessageDigest.getInstance("SHA").digest(
-          BencodeEncoder.encode(x).getBytes).mkString
+          BencodeEncoder.encode(x).getBytes).map(_.toChar).mkString
         // XXX - Really need to raise an error in this case.
         case _ => ""
       }

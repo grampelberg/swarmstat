@@ -18,13 +18,15 @@ package org.saunter.swarmstat.model
 
 import net.liftweb.mapper._
 
+import org.saunter.swarmstat.util._
+
 // XXX - Get rid of the PK and replace with a uuid.
 class Relationship extends LongKeyedMapper[Relationship] with IdPK {
   def getSingleton = Relationship
 
   // Fields
-  object torrent extends MappedStringForeignKey(this, Torrent, 20)
-  object tracker extends MappedStringForeignKey(this, Tracker, 20)
+  object torrent extends UUIDForeignKey(this, Torrent)
+  object tracker extends UUIDForeignKey(this, Tracker)
 }
 
 object Relationship extends Relationship with LongKeyedMetaMapper[Relationship]

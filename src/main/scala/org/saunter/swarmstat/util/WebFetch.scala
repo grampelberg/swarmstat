@@ -21,14 +21,15 @@
 
 package org.saunter.swarmstat.util
 
-import java.net.URI
+import java.io.InputStreamReader
+import java.net.URLEncoder
 import org.apache.http._
 import org.apache.http.client._
 import org.apache.http.client.methods._
 import org.apache.http.impl.client._
 import org.apache.http.params._
 
-import scalax.io.InputStreamResource
+import scalax.io.ReaderResource
 
 object WebFetch {
   val socket_timeout = 1 * 1000 // 1 second
@@ -37,26 +38,26 @@ object WebFetch {
     (new BasicHttpParams) setParameter("http.socket.timeout", socket_timeout)
 
   def escape(uri: String) =
-    URLEncoder.encoder(uri).replaceAll("\\+", "%20")
+    URLEncoder.encode(uri).replaceAll("\\+", "%20")
 
   def url_stream(uri: String) = {
     val client = new DefaultHttpClient(get_params)
     val get = new HttpGet(uri)
     try {
-      client.execute(get).getEntity.getContent
+      new InputStreamReader(client.execute(get).getEntity.getContent)
     } finally {
-      client.getConnectionManager.shutdown
+      // client.getConnectionManager.shutdown
     }
   }
 
   def url(uri: String) = {
     val instream = url_stream(uri)
     try {
-      InputStreamResource(instream).reader.slurp
+      ReaderResource(instream).slurp
     } catch {
       case _ => ""
     } finally {
-      instream.close
+      // instream.close
     }
-}
+  }
 }

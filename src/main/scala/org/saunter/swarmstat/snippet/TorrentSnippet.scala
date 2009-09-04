@@ -39,7 +39,8 @@ class TorrentSnippet {
 
   def purge(form: NodeSeq) = {
     def all() =
-      Torrent.findAll.map( x => x.delete_!)
+      List(Peer, Relationship, Torrent, TorrentSource, TorrentState,
+           Tracker).foreach(x => x.findAll.map(y => y.delete_!))
 
     def doBind(form: NodeSeq) =
       bind("torrent", form,

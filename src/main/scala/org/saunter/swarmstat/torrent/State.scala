@@ -21,6 +21,7 @@ import java.net.InetAddress
 import net.liftweb.util.Helpers._
 
 import org.saunter.bencode._
+import org.saunter.swarmstat.util._
 
 /*
  * group scrape requests by torrent
@@ -40,23 +41,19 @@ class Scrape(announce_url: String, info_hashes: List[String]) {
                  info_hashes.map(("info_hash", _)))
 
   def fetch =
-    BencodeDecoder.decode(WebFetch(url)) match {
-      case Some(x: Map[String, _]) => x
-      case _ => Map()
-    }
+    BencodeDecoder.decode(WebFetch.url(url))
 
-  var data =
+  var data: Map[String, _] =
     fetch match {
       case Some(x: Map[String, _]) => x.get("files") match {
-        case Some(x: Map[String, Map[String, Int]]) => x
+        case Some(y: Map[String, Map[String, Int]]) => y
         case _ => Map()
       }
       case _ => Map()
     }
 
-  def torrent_stats(info_hash: String) = None
-  def torrent_stats(info_hash: Seq[Byte]) =
-    data.get(info_hash.mkString) match {
+  def torrent_stats(info_hash: String) =
+    data.get(info_hash) match {
       case Some(x: Map[String, Int]) => Some(x)
       case _ => Map()
     }
@@ -68,19 +65,19 @@ class Announce(announce_url: String, info_hash: String) {
   val url =
     appendParams(announce_url,
                  List(("info_hash", info_hash),
-                    ("numwant", 10000), ("compact", 1)))
+                    ("numwant", "10000"), ("compact", "1")))
 
-  def fetch =
-    BencodeDecoder.decode(WebFetch(url)) match {
+  def fetch: Map[String, _] =
+    BencodeDecoder.decode(WebFetch.url(url)) match {
       case Some(x: Map[String, _]) => x
       case _ => Map()
     }
 
-  var data = fetch
+  var data: Map[String, _] = fetch
 
   def fetch_peers =
     data.get("peers") match {
-      case Some(x: Map[String, _]) => Some(get_peer_list(x))
+      case Some(x: String) => Some(get_peer_list(x))
       case _ => None
     }
 
@@ -90,34 +87,27 @@ class Announce(announce_url: String, info_hash: String) {
   def get_ip(info: String): String =
     InetAddress.getByAddress(
       info.slice(0, 4).toArray.map(_.toByte)).getHostAddress
-
 }
 
 class State(tor: Info) {
 
-  val scrape = tor.url match {
-    case Some(x) => new Scrape(x, List(tor.info_hash))
-    case _ => None
-  }
+  val scrape = tor.trackers.map(new Scrape(_, List(tor.info_hash)))
 
-  val announce = tor.url match {
-    case Some(x) => new Announce(x, tor.info_hash)
-    case _ => None
-  }
+  val announce = tor.trackers.map(new Announce(_, tor.info_hash))
 
   def scrape_info(stat: String) =
-    scrape.torrent_stats(tor.info_hash_raw) match {
-      case Some(x) => x.get("complete") match {
+    scrape.map(x => x.torrent_stats(tor.info_hash_raw) match {
+      case Some(x: Map[String, Int]) => x.get("complete") match {
         case Some(x) => x
         case _ => 0
       }
       case _ => 0
-    }
+    }).reduceLeft(_+_)
 
   def seed_count = scrape_info("complete")
   def peer_count = scrape_info("incomplete")
   def total_count = scrape_info("downloaded")
 
   def peers =
-    announce.fetch_peers
+    announce.flatMap(_.fetch_peers)
 }

@@ -59,7 +59,7 @@ class Boot {
    * Startup the master feed watcher.
    */
   FeedWatcher
-  PeerWatcher
+  StateWatcher
 }
 
 /**
@@ -75,7 +75,7 @@ object DBVendor extends ConnectionManager {
     "org.apache.derby.jdbc.EmbeddedDriver"
 
     val dbUrl: String = Props.get("db.url") openOr
-    "jdbc:derby:lift_example;create=true"
+    "jdbc:derby:swarmstat_db;create=true"
 
     Class.forName(driverName)
 

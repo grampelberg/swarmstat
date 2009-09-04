@@ -20,6 +20,7 @@
 package org.saunter.swarmstat.model
 
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers._
 
 import org.saunter.swarmstat.util._
 
@@ -29,7 +30,10 @@ class Torrent extends KeyedMapper[String, Torrent] {
 
   // Fields
   object info_hash extends UUID(this)
-  object creation extends MappedDateTime(this)
+  object foo extends MappedPoliteString(this, 128)
+  object creation extends MappedDateTime(this) {
+    override def defaultValue = timeNow
+  }
   object name extends MappedPoliteString(this, 128)
   object trackers extends HasManyThrough(this, Tracker, Relationship,
                                          Relationship.tracker,
