@@ -31,7 +31,7 @@ class Tracker extends KeyedMapper[String, Tracker] {
   object torrents extends HasManyThrough(this, Torrent, Relationship,
                                          Relationship.torrent,
                                          Relationship.tracker)
-  object first_seen extends appedDateTime(this) {
+  object first_seen extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
 

@@ -57,18 +57,19 @@ class StateWatcher extends Actor {
 
   def tracker_id(tracker: String) =
     new_tracker_?(tracker) match {
-      case Some(x) => x.uuid
-      case None => Tracker.create.hostname(tracker).save.uuid
+      case Some(x: Tracker) => x.uuid
+      case None => Tracker.create.hostname(tracker).saveMe.uuid
     }
 
-  def relationship_id(torrent_id: String, tracker_id: String)
-    new_relationship_?(torrent_id, tracker_id) match {
-      case Some(x) => x.id
-      case None => Relationship.create.torrent(torrent_id).tracker(
-        tracker_id).save.id
+  def relationship_id(tor_id: String, tracker_id: String): Long =
+    new_relationship_?(tor_id, tracker_id) match {
+      case Some(x: Relationship) => x.id
+      case None => Relationship.create.torrent(tor_id).tracker(
+        tracker_id).saveMe.id.is
     }
 
-  def save_state(state: Tracker, info_hash: String) = {
+  def save_state(state: org.saunter.swarmstat.torrent.Tracker,
+                 info_hash: String) = {
     val rel_id = relationship_id(info_hash, state.hostname)
     TorrentState.create.relationship(rel_id).seeds(
       state.seed_count).peers(state.peer_count).downloaded(
@@ -76,15 +77,15 @@ class StateWatcher extends Actor {
     state.peer_list.foreach(save_peer(_, rel_id))
   }
 
-  def save_peer(ip: String, rel_id: String) =
+  def save_peer(ip: String, rel_id: Long) =
     Peer.create.relationship(rel_id).id(Conversion.ip(ip)).save
 
   def get_state(tor: Info) = {
     val state = new State(tor)
-    state.trackers.foreach(save_state(_, tor.info_has_raw))
+    state.trackers.foreach(save_state(_, tor.info_hash_raw))
   }
 
-  def new_tracker_?(track: String): Boolean =
+  def new_tracker_?(track: String) =
     Tracker.find(By(Tracker.hostname, track)) match {
       case Full(x) => Some(x)
       case _ => None

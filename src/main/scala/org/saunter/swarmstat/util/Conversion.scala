@@ -16,15 +16,20 @@
 
 package org.saunter.swarmstat.util
 
+import java.net.InetAddress
+
 object Conversion {
+
+  def ip(i: String): Int =
+    ip(InetAddress.getByName(i).getAddress)
 
   def ip(i: Array[Byte]): Int =
     (i(0) << 24) + (i(1) << 16) + (i(2) << 8) + i(3)
 
   def ip(i: Int): Array[Byte] = Array(
-    ((i & 0xFF000000) >> 24),
-    ((i & 0x00FF0000) >> 16),
-    ((i & 0x0000FF00) >> 8),
-    ((i & 0x000000FF)))
+    ((i & 0xFF000000) >> 24).toByte,
+    ((i & 0x00FF0000) >> 16).toByte,
+    ((i & 0x0000FF00) >> 8).toByte,
+    ((i & 0x000000FF)).toByte)
 
 }

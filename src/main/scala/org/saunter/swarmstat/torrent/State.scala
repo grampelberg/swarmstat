@@ -17,6 +17,7 @@
 package org.saunter.swarmstat.torrent
 
 import java.net.InetAddress
+import java.net.URI
 import java.util.Random
 
 import net.liftweb.util.Helpers._
@@ -34,9 +35,11 @@ import org.saunter.swarmstat.util._
  * issue a tracker id?
  * obey interval/min interval
  */
-class Scrape(announce_url: String, info_hashes: List[String]) {
+class Scrape(announce_url: String, info_hash: String) {
 
-  val params = info_hashes.map(x => ("info_hash", x))
+  val params = List(
+    ("info_hash", info_hash)
+  )
 
   // There has gotta be a better way to do this.
   val url =
@@ -120,36 +123,39 @@ class Announce(announce_url: String, info_hash: String) {
   def refresh = data = fetch
 }
 
-class State(tor: Info) {
-  println("Name: " + tor.name)
+class Tracker(announce_url: String, info_hash: String) {
+  val scrape = new Scrape(announce_url, info_hash)
+  val announce = new Announce(announce_url, info_hash)
 
-  class Tracker(announce_url: String, info_hash: String) {
-    val scrape = new Scrape(announce_url, info_hash)
-    val announce = new Announce(announce_url, info_hash)
+  val hostname = (new URI(announce_url)).getHost
 
-    val hostname = (new URI(announce_url)).getHost
-
-    def scrape_info(stat: String) =
-      scrape.torrent_stats(info_hash) match {
-        case Some(x: Map[String, Int]) => x.get(stat) match {
-          case Some(x) => x
-          case _ => 0
-        }
+  def scrape_info(stat: String) =
+    scrape.torrent_stats(info_hash) match {
+      case Some(x: Map[String, Int]) => x.get(stat) match {
+        case Some(x) => x
         case _ => 0
       }
+      case _ => 0
+    }
 
-    def seed_count = scrape_info("complete")
-    def peer_count = scrape_info("incomplete")
-    def total_count = scrape_info("downloaded")
+  def seed_count = scrape_info("complete")
+  def peer_count = scrape_info("incomplete")
+  def total_count = scrape_info("downloaded")
 
-    def peer_list =
-      announce.fetch_peers match {
-        case Some(x) => x
-        case None => List()
-      }
+  def peer_list =
+    announce.fetch_peers match {
+      case Some(x) => x
+      case None => List()
+    }
 
-    def refresh = List(scrape, announce).foreach(_.refresh)
+  def refresh = {
+    scrape.refresh
+    announce.refresh
   }
+}
+
+class State(tor: Info) {
+  println("Name: " + tor.name)
 
   val trackers =
     tor.trackers.map(new Tracker(_, tor.info_hash_raw))
