@@ -3,6 +3,7 @@ dist
 *.class
 bin
 lift_example
+swarmstat_db
 .manager
 .DS_Store
 derby.log
