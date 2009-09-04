@@ -21,11 +21,16 @@
   - disable cookie processing by default (allow enabling easily)
   - allow fetching from udp as well as tcp
 
-- MasterFeed
+- FeedWatcher
   - rename to FeedWatcher (both object and class?)
   - don't silently ignore duplicates, check the hostname. If it's different,
     log that somehow.
-  - allow tcp torrent sources
+  - allow udp torrent sources
+  - when new sources are discovered, how does the info object for the torrent
+    get updated? Or, should the torrent objects periodically check the db for
+    new sources?
+  - When a bencodedecoder.decode fails, save the torrent to disk for looking
+    at in the future.
 
 - PeerWatcher
   - need to globally disable trackers that aren't up
@@ -44,9 +49,29 @@
   - Peer needs a link to tracker
   - add valdiation inside the models
   - setup the indexes correctly
+  - add UUIDKeyedMapper and UUIDKeyedMetaMapper (and allow UUID to be mixed in
+    just like IdPK).
 
 - tracker communication
   - for trackers that support it, add multiple info_hash/request
   - handle a dictionary model for peers
   - obey min interval if listed
   - use scrape for trackers that support it to fetch "downloaded" information
+
+- ActorManagement
+  - actively remove watchers that are dead.
+
+- State
+  - This needs help all over the place.
+  - Auto-fail trackers that aren't valid via. the Info object passed in (and
+    modify the state object.
+  - Group scrape requests ..... somehow, probably pass a scraper into the state
+
+- Lift bugs
+  - Unique key unusable
+  - MappedStringForeignKey creates the db as if it's a BIGINT
+    (gogo cut and paste?)
+
+- info
+  - go through and get the default "None"s removed. Should be raising an
+    exception.

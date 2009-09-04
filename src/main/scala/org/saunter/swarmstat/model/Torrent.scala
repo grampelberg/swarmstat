@@ -19,21 +19,38 @@
 
 package org.saunter.swarmstat.model
 
-import net.liftweb._
 import net.liftweb.mapper._
-import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.util._
+import net.liftweb.util.Helpers._
 
-// XXX - What do the IdPKs end up being ... need to be UUIDs
-class Torrent extends LongKeyedMapper[Torrent] with IdPK {
+import org.saunter.swarmstat.util._
+
+class Torrent extends KeyedMapper[String, Torrent] {
   def getSingleton = Torrent
+  def primaryKeyField = info_hash
 
-  // XXX - need duplicate validation!!
-  object info_hash extends MappedPoliteString(this, 20)
-  object creation extends MappedDateTime(this)
+  // Fields
+  object info_hash extends UUID(this)
+  object foo extends MappedPoliteString(this, 128)
+  object creation extends MappedDateTime(this) {
+    override def defaultValue = timeNow
+  }
   object name extends MappedPoliteString(this, 128)
-  object url extends MappedPoliteString(this, 256)
+  object trackers extends HasManyThrough(this, Tracker, Relationship,
+                                         Relationship.tracker,
+                                         Relationship.torrent)
+
+  // Convenience Methods
+  def addTracker(track: Tracker) = {
+    Relationship.create.tracker(track).torrent(this).save
+    trackers.reset
+  }
+
+  def removeTracker(track: Tracker) = {
+    Relationship.find(By(Relationship.torrent, this.info_hash),
+                      By(Relationship.tracker, track.uuid)).foreach(
+                        Relationship.delete_!)
+    trackers.reset
+  }
 }
 
-object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]
+object Torrent extends Torrent with KeyedMetaMapper[String, Torrent]

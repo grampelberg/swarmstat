@@ -19,7 +19,8 @@
 
 package org.saunter.swarmstat.torrent
 
-import java.net.InetAddress
+import java.io.Reader
+import java.net.URI
 import java.util.Date
 import java.util.Random
 import java.security.MessageDigest
@@ -36,24 +37,51 @@ class TorrentPart(the_path: String, the_size: Long) {
     path + ":" + size
 }
 
-class Info(url_ext: String) {
+class Info(url_ext: List[String]) {
 
-  val url = url_ext
-  val encoded_str = ReaderResource.url(url).slurp
+  def this(url_ext: String) =
+    this(List(url_ext))
+
+  var urls = url_ext
+  def url =
+    if (urls.length > 0) {
+      Some(urls((new Random) nextInt urls.length))
+    } else { None }
+
+  def fetch: Option[String] =
+    url match {
+      case Some(x) =>
+        try {
+          Some(WebFetch.url(x))
+        } catch { case _ => urls -= x; fetch }
+      case None => None
+    }
 
   // Not sure the pieces should be kept in memory since they'll probably never
   // be used .... maybe need to sanitize this.
-  val struct = BencodeDecoder.decode(encoded_str).get
+  val struct = fetch match {
+    case Some(x: String) => BencodeDecoder.decode(x) match {
+      // XXX - Debugging only, get rid of this crap.
+      case Some(y) => Some(y)
+      case None => {
+        println("Error decoding: " + url)
+        None
+      }
+    }
+    case None => None
+  }
   // This is going to end up getting used all over the place and I'd like to
   // make sure it only gets calculated once.
-  val info_hash: String =
+  def info_hash: String = WebFetch.escape(info_hash_raw)
+  val info_hash_raw: String =
     struct match {
-      case x: Map[String, _] => x.get("info") match {
-        case Some(x) => hex_encoder(MessageDigest.getInstance("SHA").digest(
-          BencodeEncoder.encode(x).getBytes))
+      case Some(x: Map[String, _]) => x.get("info") match {
+        case Some(x) => MessageDigest.getInstance("SHA").digest(
+          BencodeEncoder.encode(x).getBytes).map(_.toChar).mkString
         // XXX - Really need to raise an error in this case.
         case _ => ""
       }
+      case None => ""
     }
 
   def comment = get_value("comment")
@@ -66,18 +94,20 @@ class Info(url_ext: String) {
     if (trackers.length > 0) {
       Some(trackers((new Random) nextInt trackers.length))
     } else { None }
+
   def creation = struct match {
-    case x: Map[String, Long] => x.get("creation date") match {
+    case Some(x: Map[String, Long]) => x.get("creation date") match {
       // *grumbles about millisecond accuracy*
       case Some(x: Long) => new Date(x * 1000L)
       case _ => new Date()
     }
+    case None => new Date()
   }
   def by = get_value("created by")
   def name = get_value("info", "name")
   def files: List[TorrentPart] =
     struct match {
-      case x: Map[String, _] => x.get("info") match {
+      case Some(x: Map[String, _]) => x.get("info") match {
         case Some(x: Map[String, _]) => x.get("files") match {
           case Some(s: List[Map[String, _]]) => s.map(
             y => build_part(y))
@@ -85,15 +115,17 @@ class Info(url_ext: String) {
         }
         case _ => List()
       }
+      case None => List()
     }
 
   def announce_list =
     struct match {
-      case x: Map[String, _] => x.get("announce-list") match {
+      case Some(x: Map[String, _]) => x.get("announce-list") match {
         case Some(x: List[List[String]]) => x.flatMap(
           x => x).filter(_.startsWith("http"))
         case _ => List()
       }
+      case None => List()
     }
 
   def size = files.foldLeft(0L)( (x,y) => x + y.size )
@@ -103,25 +135,21 @@ class Info(url_ext: String) {
     map match { case x: Map[String, A] => x.get(key).get }
 
   def get_value(key: String): String =
-    struct match { case x: Map[String, _] => get_value(key, x) }
+    struct match {
+      case Some(x: Map[String, _]) => get_value(key, x)
+      case None => ""
+    }
 
   // XXX - Needs to be a better way to do this ... why not some kind of
   // factory? Take a look at ImmutableHashMapFactory.
   def get_value(key1: String, key2: String): String =
     struct match {
-      case x: Map[String, _] => x.get(key1) match {
+      case Some(x: Map[String, _]) => x.get(key1) match {
         case Some(x: Map[String, _]) => get_value(key2, x)
         case _ => ""
       }
+      case None => ""
     }
-
-  // I'm really cranky about this but apparently URLEncoder.encode is a pile of
-  // crap and does " " -> "+" instead of " " -> "%20" like it should.
-  def hex_encoder(input: Array[Byte]): String =
-    input.map( x => (0xFF & x) match {
-      case x if x < 16 => "0" + Integer.toHexString(x)
-      case x => Integer.toHexString(x)
-    } ).foldLeft("")( (x, y) => x + "%" + y )
 
   def build_part(file_list: Map[String, _]) = {
     val path = file_list.get("path") match {
@@ -134,40 +162,5 @@ class Info(url_ext: String) {
     }
     new TorrentPart(path, size)
   }
-
-  def current_peers: List[String] =
-    tracker match {
-      case Some(x) => fetch_peers(x)
-      case None => List()
-    }
-
-  def fetch_peers(current_tracker: String): List[String] = {
-    val announce_url = ( current_tracker + "?info_hash=" + info_hash
-                        + "&numwant=10000")
-    try {
-      val data = WebFetch.url(announce_url)
-      BencodeDecoder.decode(data) match {
-        case Some(x: Map[String, _]) => x.get("peers") match {
-          case Some(x: String) => get_peer_list(x)
-          case _ => List()
-        }
-        case _ => List()
-      }
-    } catch {
-      case _ => {
-        println("Tracker failed: " + announce_url)
-        trackers -= current_tracker
-        List()
-      }
-    }
-  }
-
-  def get_peer_list(peers: String): List[String] =
-    List.range(0, peers.length/6).map(x => get_ip(peers.slice(0+6*x, 6+6*x)))
-
-  def get_ip(info: String): String =
-    InetAddress.getByAddress(
-      info.slice(0, 4).toArray.map(_.toByte)).getHostAddress
-
 }
 

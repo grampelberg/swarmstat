@@ -25,34 +25,26 @@ import scala.xml._
 
 import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.torrent.feeds._
+import org.saunter.swarmstat.util._
+
+case class NewSource(x: Info)
+case class NewTorrent(x: Info)
+case class Update
+
 
 // XXX - How do watchers get removed? I could see this being bad.
-object MasterFeed extends Actor {
-  var watchers: List[Actor] = List()
+object FeedWatcher extends Actor with Listener {
   val feeds: List[Actor] = List(EZTV, Mininova, Isohunt)
 
   def act = loop {
-    react {
-      case AddWatcher(me: Actor) => watchers = me :: watchers
-      case UpdateFeeds => update_feeds
-      case ActiveFeeds => feeds
-      case NewTorrent(x: Info) => new_torrent(x)
-    }
+    react(handler orElse {
+      case NewSource(x: Info) => listeners.foreach(_ ! NewSource(x))
+      case NewTorrent(x: Info) => listeners.foreach(_ ! NewTorrent(x))
+    })
   }
-
-  def update_feeds =
-    feeds.foreach(_ ! Update)
-
-  def new_torrent(x: Info) =
-    watchers.foreach(_ ! NewTorrent(x))
 
   this.start
 }
-
-case class AddWatcher(me: Actor)
-case class NewTorrent(x: Info)
-case class UpdateFeeds
-case class ActiveFeeds
 
 // XXX - Should probably be tracking *what* feed a torrent came from.
 trait Feed extends Actor {
@@ -68,12 +60,8 @@ trait Feed extends Actor {
 
   // Convenience method to allow friendly fetching across all feeds.
   def get_data(url: String): Option[NodeSeq] =
-    try {
-      Some(XML.load(url))
-    } catch {
-      // Should shut a feed down if it fails too much.
-      case e => println("Feed Failure " + feed + "\n\t" + e); None
-    }
+    try { Some(XML.load(WebFetch.url_stream(url))) } catch {
+      case e => e.printStackTrace; None }
 
   def fetch: Seq[String]
 
@@ -81,29 +69,42 @@ trait Feed extends Actor {
   def update =
     fetch.foreach(store(_))
 
-  def store(raw: String): Unit = {
+  def store(raw: String): Unit =
     try {
       if (validate(raw)) {
         val tor = new Info(raw)
-        if (save(tor)) MasterFeed ! NewTorrent(tor)
+        if (new_torrent_?(tor.info_hash_raw)) {
+          Torrent.create.info_hash(tor.info_hash_raw).name(tor.name).creation(
+            tor.creation).save
+          FeedWatcher ! NewTorrent(tor)
+        }
+        if (new_feed_?(tor)) {
+          TorrentSource.create.url(raw).torrent(tor.info_hash_raw).save
+          FeedWatcher ! NewSource(tor)
+        }
       }
-      else println("Invalid URL received: " + raw)
     } catch {
-      // XXX - This needs to be converted to logging. I have no idea how that
-      // works. There should be some kind of failure count. If this
-      // fails too many times, something isn't working, the actor should be
-      // shut down
-      case e => println("Failed: " + raw + "\n\tBecause: " + e)
+      case e => e.printStackTrace
     }
-  }
 
-  def save(obj: Info) =
-    Torrent.find(By(Torrent.info_hash, obj.info_hash)) match {
-      case Full(_) => println("Duplicate: " + obj.name); false
-      case Empty => Torrent.create.info_hash.apply(
-        obj.info_hash).creation.apply(obj.creation).name.apply(obj.name).url.apply(obj.url).save; true
-      case Failure(msg, _, _) => println(
-        "Failure: " + obj.name + "\n\tBecause: " + msg); false
+  def new_feed_?(tor: Info): Boolean =
+    tor.url match {
+      case Some(url) => {
+        TorrentSource.find(By(TorrentSource.torrent, tor.info_hash_raw),
+                           By(TorrentSource.url, url)) match {
+                             case Full(_) => false
+                             case Empty => true
+                             case _ => true
+                           }
+      }
+      case _ => false
+    }
+
+  def new_torrent_?(hash: String): Boolean =
+    Torrent.find(By(Torrent.info_hash, hash)) match {
+      case Full(_) => false
+      case Empty => true
+      case _ => true
     }
 
   def validate(url: String) =
@@ -113,6 +114,3 @@ trait Feed extends Actor {
   ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
                                 TimeSpan(timer))
 }
-
-
-case class Update

@@ -10,7 +10,7 @@ import _root_.java.sql.{Connection, DriverManager}
 import _root_.org.saunter.swarmstat.model._
 import _root_.javax.servlet.http.{HttpServletRequest}
 
-import org.saunter.swarmstat.torrent.{MasterFeed,PeerWatcher}
+import org.saunter.swarmstat.torrent._
 
 /**
   * A class that's instantiated early and run.  It allows the application
@@ -23,7 +23,9 @@ class Boot {
 
     // where to search snippet
     LiftRules.addToPackages("org.saunter.swarmstat")
-    Schemifier.schemify(true, Log.infoF _, User, Torrent, Peer)
+    Schemifier.schemify(true, Log.infoF _,
+                        Peer, Relationship, Torrent, TorrentSource,
+                        TorrentState, Tracker, User)
 
     LiftRules.setSiteMap(SiteMap(MenuSetup.menu:_*))
 
@@ -54,10 +56,10 @@ class Boot {
   }
 
   /**
-   * Startup the master feed fetcher.
+   * Startup the master feed watcher.
    */
-  MasterFeed
-  PeerWatcher
+  FeedWatcher
+  StateWatcher
 }
 
 /**
@@ -73,7 +75,7 @@ object DBVendor extends ConnectionManager {
     "org.apache.derby.jdbc.EmbeddedDriver"
 
     val dbUrl: String = Props.get("db.url") openOr
-    "jdbc:derby:lift_example;create=true"
+    "jdbc:derby:swarmstat_db;create=true"
 
     Class.forName(driverName)
 

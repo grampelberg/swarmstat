@@ -39,7 +39,8 @@ class TorrentSnippet {
 
   def purge(form: NodeSeq) = {
     def all() =
-      Torrent.findAll.map( x => x.delete_!)
+      List(Peer, Relationship, Torrent, TorrentSource, TorrentState,
+           Tracker).foreach(x => x.findAll.map(y => y.delete_!))
 
     def doBind(form: NodeSeq) =
       bind("torrent", form,
@@ -53,15 +54,4 @@ class TorrentSnippet {
       <torrent:view>Loading...</torrent:view>
     </lift:comet>
   }
-
-  def updateFeeds(html: NodeSeq) = {
-    def all() =
-      MasterFeed ! UpdateFeeds
-
-    def doBind(html: NodeSeq) =
-      bind("feed", html, "update" -> submit("Update", all))
-
-    doBind(html)
-  }
-
 }

@@ -14,23 +14,19 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Model to keep peer data.
- */
-
 package org.saunter.swarmstat.model
 
 import net.liftweb.mapper._
-import net.liftweb.util.Helpers._
 
-// XXX - Need to get rid of the PK here.
-class Peer extends LongKeyedMapper[Peer] with IdPK {
-  def getSingleton = Peer
+import org.saunter.swarmstat.util._
 
-  object relationship extends MappedLongForeignKey(this, Relationship)
-  object ip extends MappedInt(this)
-  object when extends MappedDateTime(this) {
-    override def defaultValue = timeNow
-  }
+// XXX - Get rid of the PK and replace with a uuid.
+class Relationship extends LongKeyedMapper[Relationship] with IdPK {
+  def getSingleton = Relationship
+
+  // Fields
+  object torrent extends UUIDForeignKey(this, Torrent)
+  object tracker extends UUIDForeignKey(this, Tracker)
 }
 
-object Peer extends Peer with LongKeyedMetaMapper[Peer]
+object Relationship extends Relationship with LongKeyedMetaMapper[Relationship]

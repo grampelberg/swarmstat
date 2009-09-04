@@ -1,15 +1,9 @@
 <lift:surround with="default" at="content">
   <div class="left" style="float:left;width:75%">
     <lift:TorrentSnippet.viewlist />
-    <lift:TorrentSnippet.updateFeeds>
-      <feed:update></feed:update>
-    </lift:TorrentSnippet.updateFeeds>
     <lift:TorrentSnippet.purge form="post">
       <torrent:purge></torrent:purge>
     </lift:TorrentSnippet.purge>
-  </div>
-  <div class="right" style="float:right;width:25%">
-    <lift:PeerSnippet.viewlist />
   </div>
 </lift:surround>
 
