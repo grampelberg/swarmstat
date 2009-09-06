@@ -26,6 +26,7 @@ import scala.xml._
 import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.util._
 
+case class NewState(seed_count: Int, peer_count: Int, total_count: Int)
 case class WatchTorrent(tor: Info)
 
 object StateWatcher extends Actor with Listener {
@@ -35,6 +36,8 @@ object StateWatcher extends Actor with Listener {
 
   def act = loop {
     react(handler orElse {
+      case NewState(s: Int, p: Int, t: Int) =>
+        listeners.foreach(_ ! NewState(s, p, t))
       case NewTorrent(x: Info) => state_monitors.foreach(_ ! WatchTorrent(x))
     })
   }
@@ -48,12 +51,29 @@ object StateWatcher extends Actor with Listener {
 }
 
 class StateWatcher extends Actor {
+  var torrent_state: List[State] = List()
+  val startup_delay = 30*1000
+  val timer = 5*60*1000
 
   def act = loop {
     react {
-      case WatchTorrent(x: Info) => get_state(x)
+      case Update => update
+      case WatchTorrent(x: Info) => track_state(x)
     }
   }
+
+  def update =
+    torrent_state.foreach(refresh_state(_))
+
+  def refresh_state(st: State) =
+    st.trackers.foreach(x => {
+      x.refresh
+      save_state(x)
+      StateWatcher ! NewState(x.seed_count, x.peer_count, x.total_count)
+    })
+
+  def track_state(tor: Info) =
+    torrent_state = (new State(tor)) :: torrent_state
 
   def tracker_id(tracker: String) =
     new_tracker_?(tracker) match {
@@ -68,9 +88,9 @@ class StateWatcher extends Actor {
         track_id).saveMe.id.is
     }
 
-  def save_state(state: TrackerSnapshot,
-                 info_hash: String) = {
-    val rel_id = relationship_id(info_hash, tracker_id(state.hostname))
+  def save_state(state: TrackerSnapshot) = {
+    println("Seeds: " + state.seed_count + "\tPeers: " + state.peer_count + "\tTotal: " + state.total_count)
+    val rel_id = relationship_id(state.info_hash, tracker_id(state.hostname))
     TorrentState.create.relationship(rel_id).seeds(
       state.seed_count).peers(state.peer_count).downloaded(
       state.total_count).save
@@ -79,11 +99,6 @@ class StateWatcher extends Actor {
 
   def save_peer(ip: String, rel_id: Long) =
     Peer.create.relationship(rel_id).id(Conversion.ip(ip)).save
-
-  def get_state(tor: Info) = {
-    val state = new State(tor)
-    state.trackers.foreach(save_state(_, tor.info_hash_raw))
-  }
 
   def new_tracker_?(track: String) =
     Tracker.find(By(Tracker.hostname, track)) match {
@@ -99,4 +114,6 @@ class StateWatcher extends Actor {
     }
 
   this.start
+  ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
+                                TimeSpan(timer))
 }

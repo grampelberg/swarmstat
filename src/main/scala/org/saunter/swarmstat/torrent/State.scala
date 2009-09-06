@@ -123,10 +123,10 @@ class Announce(announce_url: String, info_hash: String) {
   def refresh = data = fetch
 }
 
-class TrackerSnapshot(announce_url: String, info_hash: String) {
+class TrackerSnapshot(announce_url: String, info_hash_tmp: String) {
+  val info_hash = info_hash_tmp
   val scrape = new Scrape(announce_url, info_hash)
   val announce = new Announce(announce_url, info_hash)
-
   val hostname = (new URI(announce_url)).getHost
 
   def scrape_info(stat: String) =

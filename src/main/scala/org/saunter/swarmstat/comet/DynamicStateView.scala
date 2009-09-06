@@ -14,38 +14,41 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Ability to manipulate torrents
- */
-
-package org.saunter.swarmstat.snippet
-
-import java.text.SimpleDateFormat
-import java.util.Date
+package org.saunter.swarmstat.comet
 
 import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.http.S._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JsCmds._
 import net.liftweb.mapper._
 import net.liftweb.util._
-import net.liftweb.util.Helpers._
-import scala.xml.{NodeSeq, Text}
+import net.liftweb.sitemap._
+import net.liftweb.sitemap.Loc._
+import scala.xml._
 
 import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.torrent._
+import org.saunter.swarmstat.util._
 
-class TorrentSnippet {
+class DynamicStateView extends CometActor {
+  override def defaultPrefix = Full("state")
+  val max_view = 20
+  var states: List[Tuple3[Int, Int, Int]] = List()
 
-  def viewstate(html: NodeSeq) = {
-    <lift:comet type="DynamicStateView" name={toLong(S.param("id")).toString}>
-      <state:view>Loading...</state:view>
-    </lift:comet>
+  def stateview(e: String): Node = {
+    <li>{e}</li>
   }
 
-  def viewlist(html: NodeSeq) = {
-    <lift:comet type="DynamicTorrentView" name={toLong(S.param("id")).toString}>
-      <torrent:view>Loading...</torrent:view>
-    </lift:comet>
+  def render =
+    bind("view" -> <ul>{states.flatMap(e =>
+      stateview(e._1 + "," + e._2 + "," + e._3))}</ul>)
+
+  override def localSetup = {
+    StateWatcher ! Add(this)
+    states = TorrentState.findAll(
+      OrderBy(TorrentState.id, Descending),
+      MaxRows(max_view)).map(x => (x.seeds, x.peers, x.downloaded))
+  }
+
+  override def lowPriority: PartialFunction[Any, Unit] = {
+    case NewState(s: Int, p: Int, t: Int) =>
+      states = (s, p, t) :: states.slice(0, max_view-1); reRender(false)
   }
 }

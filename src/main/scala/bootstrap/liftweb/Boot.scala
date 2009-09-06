@@ -127,6 +127,7 @@ object MenuSetup {
 
   def menu: List[Menu] =
     Menu(Loc("Home", List("index"), "Home")) ::
+    Menu(Loc("State", List("state"), "State")) ::
     User.sitemap
 
 }
