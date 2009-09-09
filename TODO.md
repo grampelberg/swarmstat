@@ -79,3 +79,7 @@
   - go through and get the default "None"s removed. Should be raising an
     exception.
   - handle port additions as the same tracker.
+
+- nginx
+  - setup bots and spambots config
+  - make sure access_logs are working right
