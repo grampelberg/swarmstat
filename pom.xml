@@ -80,19 +80,14 @@
       <version>0.1</version>
     </dependency>
     <dependency>
-      <groupId>org.scalaforge.scalax</groupId>
+      <groupId>org.scalaforge</groupId>
       <artifactId>scalax</artifactId>
-      <version>0.2</version>
+      <version>0.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.0.1-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpcore</artifactId>
-      <version>4.1-SNAPSHOT</version>
+      <version>4.0-beta1</version>
     </dependency>
     <dependency>
       <groupId>commons-logging</groupId>

@@ -1,0 +1,19 @@
+GLASSFISHHOME=/usr/share/glassfishv2/
+GLASSFISHUSER=glassfish
+DOMAINHOME=/var/lib/glassfishv2/domains
+DOMAIN=swarmstat
+case "$1" in
+start) 
+    sudo -u ${GLASSFISHUSER} ${GLASSFISHHOME}/bin/asadmin start-domain --domaindir ${DOMAINHOME} ${DOMAIN}
+    ;;
+stop)
+   sudo -u ${GLASSFISHUSER} ${GLASSFISHHOME}/bin/asadmin stop-domain --domaindir ${DOMAINHOME} ${DOMAIN}
+    ;;
+restart)
+    sudo -u ${GLASSFISHUSER} ${GLASSFISHHOME}/bin/asadmin start-domain --domaindir ${DOMAINHOME} ${DOMAIN}
+    sudo -u ${GLASSFISHUSER} ${GLASSFISHHOME}/bin/asadmin stop-domain --domaindir ${DOMAINHOME} ${DOMAIN}
+    ;;
+*)
+    echo $"usage: $0 {start|stop|restart}"
+    exit 1
+esac
