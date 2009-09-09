@@ -1,0 +1,47 @@
+# nginx => glassfish (with nginx for static content)
+
+upstream glassfish {
+    server 127.0.0.1:8080;
+}
+
+upstream glassfish-ssl {
+    server 127.0.0.1:8181;
+}
+
+server {
+    listen 80;
+    server_name swarmstat.com;
+    location / {
+        root html;
+        index index.html index.htm;
+        proxy_pass http://glassfish;
+    }
+}
+
+server {
+    listen 80;
+    server_name www.swmarstat.com;
+    rewrite ^(.*)$ http://server.com$1;
+}
+
+server {
+    listen 443;
+    ssl on;
+    ssl_certificate /etc/nginx/server.crt;
+    ssl_certificate_key /etc/nginx/server.key;
+    server_name swarmstat.com;
+    location / {
+        root html;
+        index index.html index.htm;
+        proxy_pass https://glassfish-ssl;
+    }
+}
+
+server {
+    listen 443;
+    ssl on;
+    ssl_certificate /etc/nginx/server.crt;
+    ssl_certificate_key /etc/nginx/server.key;
+    server_name www.swarmstat.com;
+    rewrite ^(.*)$ https://swarmstat.com$1;
+}
