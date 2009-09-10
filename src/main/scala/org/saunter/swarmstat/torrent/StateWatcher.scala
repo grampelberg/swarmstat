@@ -16,6 +16,7 @@
 
 package org.saunter.swarmstat.torrent
 
+import net.lag.logging.Logger
 import net.liftweb.mapper._
 import net.liftweb.util.{ActorPing,Box,Full,Empty,Failure}
 import net.liftweb.util.Helpers.TimeSpan
@@ -36,15 +37,23 @@ object StateWatcher extends Actor with Listener {
 
   def act = loop {
     react(handler orElse {
-      case NewState(s: Int, p: Int, t: Int) =>
+      case NewState(s: Int, p: Int, t: Int) => {
+        Logger("StateWatcher").info("NewState")
         listeners.foreach(_ ! NewState(s, p, t))
-      case NewTorrent(x: Info) => state_monitors.foreach(_ ! WatchTorrent(x))
+      }
+      case NewTorrent(x: Info) => {
+        Logger("StateWatcher").info("NewTorrent: %s", x.name)
+        state_monitors.foreach(_ ! WatchTorrent(x))
+      }
     })
   }
 
-  def new_monitor =
+  def new_monitor = {
+    Logger("StateWatcher").info("launching new monitor")
     state_monitors = (new StateWatcher) :: state_monitors
+  }
 
+  Logger("StateWatcher").info("starting")
   FeedWatcher ! Add(this)
   new_monitor
   this.start
@@ -57,8 +66,11 @@ class StateWatcher extends Actor {
 
   def act = loop {
     react {
-      case Update => update
-      case WatchTorrent(x: Info) => track_state(x)
+      case Update => Logger("StateMonitor").info("Update"); update
+      case WatchTorrent(x: Info) => {
+        Logger("StateMonitor").info("WatchTorrent")
+        track_state(x)
+      }
     }
   }
 
@@ -67,6 +79,8 @@ class StateWatcher extends Actor {
 
   def refresh_state(st: State) =
     st.trackers.foreach(x => {
+      Logger("StateMonitor").info("%s:%s: refresh",
+                                  WebFetch.escape(x.info_hash), x.hostname)
       x.refresh
       save_state(x)
       StateWatcher ! NewState(x.seed_count, x.peer_count, x.total_count)
@@ -89,7 +103,13 @@ class StateWatcher extends Actor {
     }
 
   def save_state(state: TrackerSnapshot) = {
-    println("Seeds: " + state.seed_count + "\tPeers: " + state.peer_count + "\tTotal: " + state.total_count)
+    Logger("StateMonitor").info("%s:%s: Seeds:%s\tPeers:%s\tTotal:%s",
+                                WebFetch.escape(state.info_hash),
+                                state.hostname, state.seed_count,
+                                state.peer_count, state.total_count)
+    Logger("StateMonitor").info("%s:%s: peer_list:%s",
+                                WebFetch.escape(state.info_hash),
+                                state.hostname, state.peer_list.mkString(","))
     val rel_id = relationship_id(state.info_hash, tracker_id(state.hostname))
     TorrentState.create.relationship(rel_id).seeds(
       state.seed_count).peers(state.peer_count).downloaded(
@@ -113,6 +133,7 @@ class StateWatcher extends Actor {
       case _ => None
     }
 
+  Logger("StateMonitor").info("starting")
   this.start
   ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
                                 TimeSpan(timer))

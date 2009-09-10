@@ -9,6 +9,8 @@ import _root_.net.liftweb.mapper.{DB, ConnectionManager, Schemifier, DefaultConn
 import _root_.java.sql.{Connection, DriverManager}
 import _root_.org.saunter.swarmstat.model._
 import _root_.javax.servlet.http.{HttpServletRequest}
+import net.lag.configgy.Configgy
+import net.lag.logging.Logger
 
 import org.saunter.swarmstat.torrent._
 
@@ -17,7 +19,13 @@ import org.saunter.swarmstat.torrent._
   * to modify lift's environment
   */
 class Boot {
+  /**
+   * Setup logging
+   */
+  Configgy.configure("logging.conf")
+  val log = Logger.get
   def boot {
+    log.info("Booting.")
     if (!DB.jndiJdbcConnAvailable_?)
       DB.defineConnectionManager(DefaultConnectionIdentifier, DBVendor)
 
@@ -46,6 +54,14 @@ class Boot {
     LiftRules.loggedInTest = Full(() => User.loggedIn_?)
 
     S.addAround(DB.buildLoanWrapper)
+
+    /**
+     * Startup the master feed watcher.
+     */
+    FeedWatcher
+    StateWatcher
+
+    log.info("Boot complete.")
   }
 
   /**
@@ -54,12 +70,6 @@ class Boot {
   private def makeUtf8(req: HttpServletRequest) {
     req.setCharacterEncoding("UTF-8")
   }
-
-  /**
-   * Startup the master feed watcher.
-   */
-  FeedWatcher
-  StateWatcher
 }
 
 /**

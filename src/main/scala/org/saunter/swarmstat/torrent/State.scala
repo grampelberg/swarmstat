@@ -20,6 +20,7 @@ import java.net.InetAddress
 import java.net.URI
 import java.util.Random
 
+import net.lag.logging.Logger
 import net.liftweb.util.Helpers._
 
 import org.saunter.bencode._
@@ -48,16 +49,23 @@ class Scrape(announce_url: String, info_hash: String) {
 
   def fetch: Map[String, _] =
     try {
-      println("\tScrape: " + announce_url)
+      val raw = WebFetch.url(url)
+      Logger("Scrape").info("Raw:\n%s", raw)
       BencodeDecoder.decode(WebFetch.url(url)) match {
         case Some(x: Map[String, _]) => x.get("files") match {
-          case Some(y: Map[String, Map[String, Int]]) => println(y); y
+          case Some(y: Map[String, Map[String, Int]]) => y
           case _ => Map()
         }
         case _ => Map()
       }
     } catch {
-      case e => println("Failed: " + e); Map()
+      case e: java.net.SocketTimeoutException =>
+        Logger("Scrape").info("%s: slow host", url); Map()
+      case e: org.apache.http.NoHttpResponseException =>
+        Logger("Scrape").info("%s: bad host", url); Map()
+      case e: java.net.SocketException =>
+        Logger("Scrape").info("%s: bad host", url); Map()
+      case e => Logger("Scrape").error(e, "%s: fetch", url); Map()
     }
 
   var data: Map[String, _] = Map()
@@ -87,14 +95,20 @@ class Announce(announce_url: String, info_hash: String) {
 
   def fetch: Map[String, _] =
     try {
-      println(url)
-      println("\tTracker: " + announce_url)
-      BencodeDecoder.decode(WebFetch.url(url)) match {
-        case Some(x: Map[String, _]) => println(x); x
+      val raw = WebFetch.url(url)
+      Logger("Announce").info("Raw:\n%s", raw)
+      BencodeDecoder.decode(raw) match {
+        case Some(x: Map[String, _]) => x
         case _ => Map()
       }
     } catch {
-      case e => Map()
+      case e: java.net.SocketTimeoutException =>
+        Logger("Announce").info("%s: slow host", url); Map()
+      case e: org.apache.http.NoHttpResponseException =>
+        Logger("Scrape").info("%s: bad host", url); Map()
+      case e: java.net.SocketException =>
+        Logger("Scrape").info("%s: bad host", url); Map()
+      case e => Logger("Announce").error(e, "%s: fetch", url); Map()
     }
 
   var data: Map[String, _] = Map()
@@ -155,7 +169,7 @@ class TrackerSnapshot(announce_url: String, info_hash_tmp: String) {
 }
 
 class State(tor: Info) {
-  println("Name: " + tor.name)
+  Logger("State").info("%s: initializing", tor.name)
 
   val trackers =
     tor.trackers.map(new TrackerSnapshot(_, tor.info_hash_raw))

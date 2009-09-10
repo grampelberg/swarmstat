@@ -16,6 +16,7 @@
 
 package org.saunter.swarmstat.torrent
 
+import net.lag.logging.Logger
 import net.liftweb.mapper._
 import net.liftweb.util.{ActorPing,Box,Full,Empty,Failure}
 import net.liftweb.util.Helpers.TimeSpan
@@ -31,7 +32,6 @@ case class NewSource(x: Info)
 case class NewTorrent(x: Info)
 case class Update
 
-
 // XXX - How do watchers get removed? I could see this being bad.
 object FeedWatcher extends Actor with Listener {
   val feeds: List[Actor] = List(EZTV, Mininova, Isohunt)
@@ -43,6 +43,7 @@ object FeedWatcher extends Actor with Listener {
     })
   }
 
+  Logger.get.info("FeedWatcher starting")
   this.start
 }
 
@@ -54,14 +55,18 @@ trait Feed extends Actor {
 
   def act = loop {
     react {
-      case Update => println("Update: " + feed); update
+      case Update => Logger("Feed").info("%s: Update", feed); update
     }
   }
 
   // Convenience method to allow friendly fetching across all feeds.
   def get_data(url: String): Option[NodeSeq] =
     try { Some(XML.load(WebFetch.url_stream(url))) } catch {
-      case e => e.printStackTrace; None }
+      case e => {
+        Logger("Feed").error(e, "%s: get_data", feed)
+        None
+      }
+    }
 
   def fetch: Seq[String]
 
@@ -83,7 +88,9 @@ trait Feed extends Actor {
         FeedWatcher ! NewSource(tor)
       }
     } catch {
-      case e => e.printStackTrace
+      case e: java.net.SocketException =>
+        Logger("Feed").info("%s: slow host: %s", feed, raw)
+      case e => Logger("Feed").error(e, "%s: store: %s", feed, raw)
     }
 
   def new_feed_?(tor: String): Boolean =
@@ -103,7 +110,9 @@ trait Feed extends Actor {
   def validate(url: String) =
     url.startsWith("http://")
 
+  Logger("Feed").info("%s: starting", feed)
   this.start
+  Logger("Feed").info("%s: updates every %s", feed, timer)
   ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
                                 TimeSpan(timer))
 }

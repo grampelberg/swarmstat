@@ -8,3 +8,4 @@ swarmstat_db
 .DS_Store
 derby.log
 .#*
+log/*

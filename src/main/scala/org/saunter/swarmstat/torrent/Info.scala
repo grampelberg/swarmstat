@@ -25,6 +25,7 @@ import java.util.Date
 import java.util.Random
 import java.security.MessageDigest
 
+import net.lag.logging.Logger
 import org.saunter.bencode._
 import org.saunter.swarmstat.util._
 import scalax.io.ReaderResource
@@ -64,7 +65,7 @@ class Info(url_ext: List[String]) {
       // XXX - Debugging only, get rid of this crap.
       case Some(y) => Some(y)
       case None => {
-        println("Error decoding: " + url.get)
+        Logger.get.info("%s: can't decode", url.get)
         None
       }
     }

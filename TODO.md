@@ -69,6 +69,7 @@
   - Auto-fail trackers that aren't valid via. the Info object passed in (and
     modify the state object.
   - Group scrape requests ..... somehow, probably pass a scraper into the state
+  - fold the fetch for both Announce and Scrape into a parent trait.
 
 - Lift bugs
   - Unique key unusable
