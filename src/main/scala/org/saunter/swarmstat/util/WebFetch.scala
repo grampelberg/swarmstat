@@ -34,9 +34,12 @@ import scalax.io.ReaderResource
 
 object WebFetch {
   val socket_timeout = 1 * 1000 // 1 second
+  val connect_timeout = 5 * 1000 // 1 second
 
   def get_params =
-    (new BasicHttpParams) setParameter("http.socket.timeout", socket_timeout)
+    (new BasicHttpParams).setParameter(
+      "http.socket.timeout", socket_timeout) setParameter(
+      "http.connection.timeout", connect_timeout)
 
   def paramsToUrlParams(params: List[(String, String)]): String =
     params.map {

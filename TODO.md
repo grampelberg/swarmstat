@@ -83,3 +83,6 @@
 - nginx
   - setup bots and spambots config
   - make sure access_logs are working right
+
+- encodings
+  - do transcoding of torrent names to utf-8. Is there a way to do this in java?
