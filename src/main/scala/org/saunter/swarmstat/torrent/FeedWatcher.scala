@@ -63,7 +63,7 @@ trait Feed extends Actor {
   def get_data(url: String): Option[NodeSeq] =
     try { Some(XML.load(WebFetch.url_stream(url))) } catch {
       case e => {
-        Logger("Feed").error(e, "%s: get_data", feed)
+        Logger("Feed").debug("%s: get_data: %s", feed, e)
         None
       }
     }
