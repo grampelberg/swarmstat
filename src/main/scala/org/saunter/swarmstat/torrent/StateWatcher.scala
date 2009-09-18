@@ -79,8 +79,6 @@ class StateWatcher extends Actor {
 
   def refresh_state(st: State) =
     st.trackers.foreach(x => {
-      Logger("StateMonitor").info("%s:%s: refresh",
-                                  WebFetch.escape(x.info_hash), x.hostname)
       x.refresh
       save_state(x)
       StateWatcher ! NewState(x.seed_count, x.peer_count, x.total_count)
@@ -102,23 +100,21 @@ class StateWatcher extends Actor {
         track_id).saveMe.id.is
     }
 
-  def save_state(state: TrackerSnapshot) = {
-    Logger("StateMonitor").info("%s:%s: Seeds:%s\tPeers:%s\tTotal:%s",
+  def save_state(state: Announce) = {
+    Logger("StateMonitor").info("%s:%s: Seeds:%s\tPeers:%s\tTotal:%s\tCount:%s",
                                 WebFetch.escape(state.info_hash),
                                 state.hostname, state.seed_count,
-                                state.peer_count, state.total_count)
-    Logger("StateMonitor").info("%s:%s: peer_list:%s",
-                                WebFetch.escape(state.info_hash),
-                                state.hostname, state.peer_list.mkString(","))
+                                state.peer_count, state.total_count,
+                                state.peer_list.length)
     val rel_id = relationship_id(state.info_hash, tracker_id(state.hostname))
-    TorrentState.create.relationship(rel_id).seeds(
-      state.seed_count).peers(state.peer_count).downloaded(
-      state.total_count).save
-    state.peer_list.foreach(save_peer(_, rel_id))
+    val state_id = TorrentState.create.relationship(rel_id).seed_count(
+      state.seed_count).peer_count(state.peer_count).downloaded(
+      state.total_count).saveMe.id.is
+    state.peer_list.foreach(save_peer(_, state_id))
   }
 
   def save_peer(ip: String, rel_id: Long) =
-    Peer.create.relationship(rel_id).id(Conversion.ip(ip)).save
+    Peer.create.state(rel_id).ip(Conversion.ip(ip)).save
 
   def new_tracker_?(track: String) =
     Tracker.find(By(Tracker.hostname, track)) match {

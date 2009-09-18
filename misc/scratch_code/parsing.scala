@@ -14,26 +14,25 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-package org.saunter.swarmstat.snippet
+import scalax.io._
+import org.saunter.bencode._
+import java.security.MessageDigest
+import org.saunter.swarmstat.util.WebFetch
 
-import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.http.S._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.mapper._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
-import scala.xml.{NodeSeq, Text}
-
-import org.saunter.swarmstat.model._
-import org.saunter.swarmstat.torrent._
-
-class PeerSnippet {
-
-  def viewlist(html: NodeSeq) = {
-    <lift:comet type="DynamicPeerView" name={toLong(S.param("id")).toString}>
-      <peer:view>Loading...</peer:view>
-    </lift:comet>
-  }
+val q = ReaderResource.url("http://tracker.openbittorrent.com/announce?info_hash=%FC%E7%8E%E8%FE%12%D6%CBG%D0%B2%C4e%A6%9A%AEBT4%21&numwant=10000&compact=1&peer_id=-SW0001-437850138358").slurp
+val w = BencodeDecoder.decode(q) match {
+  case Some(x: Map[String, _]) => x
 }
+val e = w.get("downloaded") match {
+  case Some(x: Int) => x
+  case Some(x: Long) => x
+  case _ => 0
+}
+println(e)
+
+val r = w match {
+  case x: Map[String, String] if x.contains("peers") => x.get("peers")
+  case x: Map[String, String] if x.contains("peers6") => x.get("peers6")
+  case _ => None
+}
+println(r)

@@ -26,60 +26,9 @@ import net.liftweb.util.Helpers._
 import org.saunter.bencode._
 import org.saunter.swarmstat.util._
 
-/*
- * group scrape requests by torrent
- * lookup multiple trackers
- * handle failure reason if it's listed (log)
- *
- * announce specific:
- * set compact=1
- * issue a tracker id?
- * obey interval/min interval
- */
-class Scrape(announce_url: String, info_hash: String) {
-
-  val params = List(
-    ("info_hash", info_hash)
-  )
-
-  // There has gotta be a better way to do this.
-  val url =
-    WebFetch.appendParams(announce_url.replaceAll("announce", "scrape"),
-                          params)
-
-  def fetch: Map[String, _] =
-    try {
-      val raw = WebFetch.url(url)
-      Logger("Scrape").info("Raw:\n%s", raw)
-      BencodeDecoder.decode(WebFetch.url(url)) match {
-        case Some(x: Map[String, _]) => x.get("files") match {
-          case Some(y: Map[String, Map[String, Int]]) => y
-          case _ => Map()
-        }
-        case _ => Map()
-      }
-    } catch {
-      case e: java.net.SocketTimeoutException =>
-        Logger("Scrape").info("%s: slow host", url); Map()
-      case e: org.apache.http.NoHttpResponseException =>
-        Logger("Scrape").info("%s: bad host", url); Map()
-      case e: java.net.SocketException =>
-        Logger("Scrape").info("%s: bad host", url); Map()
-      case e => Logger("Scrape").error(e, "%s: fetch", url); Map()
-    }
-
-  var data: Map[String, _] = Map()
-
-  def torrent_stats(info_hash: String) =
-    data.get(info_hash) match {
-      case Some(x: Map[String, Int]) => Some(x)
-      case _ => Map()
-    }
-
-  def refresh = data = fetch
-}
-
-class Announce(announce_url: String, info_hash: String) {
+class Announce(announce_url: String, info_hash_tmp: String) {
+  val info_hash = info_hash_tmp
+  val hostname = (new URI(announce_url)).getHost
 
   val random = new Random
 
@@ -87,27 +36,33 @@ class Announce(announce_url: String, info_hash: String) {
     ("info_hash", info_hash),
     ("numwant", "10000"),
     ("compact", "1"),
+    ("port", "3137"),
     ("peer_id", "-SW0001-" + (1 to 12).map(x => random.nextInt(9)).mkString)
   )
 
   val url =
     WebFetch.appendParams(announce_url, params)
 
+  def invalid_data_?(parsed: Map[String, _], raw: String) =
+    parsed.get("complete") match {
+      case Some(_) => None
+      case _ => Logger("Announce").debug("URL: %s\n%s", url, raw)
+    }
+
   def fetch: Map[String, _] =
     try {
       val raw = WebFetch.url(url)
-      Logger("Announce").info("Raw:\n%s", raw)
       BencodeDecoder.decode(raw) match {
-        case Some(x: Map[String, _]) => x
-        case _ => Map()
+        case Some(x: Map[String, _]) => invalid_data_?(x, raw); x
+        case _ => invalid_data_?(Map(), raw); Map()
       }
     } catch {
       case e: java.net.SocketTimeoutException =>
         Logger("Announce").info("%s: slow host", url); Map()
       case e: org.apache.http.NoHttpResponseException =>
-        Logger("Scrape").info("%s: bad host", url); Map()
+        Logger("Announce").info("%s: bad host", url); Map()
       case e: java.net.SocketException =>
-        Logger("Scrape").info("%s: bad host", url); Map()
+        Logger("Announce").info("%s: bad host", url); Map()
       case e => Logger("Announce").error(e, "%s: fetch", url); Map()
     }
 
@@ -135,44 +90,30 @@ class Announce(announce_url: String, info_hash: String) {
       info.slice(0, 4).toArray.map(_.toByte)).getHostAddress
 
   def refresh = data = fetch
-}
 
-class TrackerSnapshot(announce_url: String, info_hash_tmp: String) {
-  val info_hash = info_hash_tmp
-  val scrape = new Scrape(announce_url, info_hash)
-  val announce = new Announce(announce_url, info_hash)
-  val hostname = (new URI(announce_url)).getHost
+  def get_value(v: String): Int = data.get(v) match {
+    case Some(x: Int) => x
+    case Some(x: Long) => x.toInt
+    case _ => 0
+  }
 
-  def scrape_info(stat: String) =
-    scrape.torrent_stats(info_hash) match {
-      case Some(x: Map[String, Int]) => x.get(stat) match {
-        case Some(x) => x
-        case _ => 0
-      }
-      case _ => 0
-    }
-
-  def seed_count = scrape_info("complete")
-  def peer_count = scrape_info("incomplete")
-  def total_count = scrape_info("downloaded")
+  def seed_count = get_value("complete")
+  def peer_count = get_value("incomplete")
+  def total_count = get_value("downloaded")
 
   def peer_list =
-    announce.fetch_peers match {
+    fetch_peers match {
       case Some(x) => x
-      case None => List()
+      case _ => List()
     }
-
-  def refresh = {
-    scrape.refresh
-    announce.refresh
-  }
 }
 
 class State(tor: Info) {
   Logger("State").info("%s: initializing", tor.name)
 
-  val trackers =
-    tor.trackers.map(new TrackerSnapshot(_, tor.info_hash_raw))
+  val trackers = List(new Announce(tor.trackers(0), tor.info_hash_raw))
+  // val trackers =
+  //   tor.trackers.map(new TrackerSnapshot(_, tor.info_hash_raw))
 
   def seed_count = trackers.map(_.seed_count).reduceLeft(_+_)
   def peer_count = trackers.map(_.peer_count).reduceLeft(_+_)

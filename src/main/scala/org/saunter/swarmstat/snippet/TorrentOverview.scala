@@ -14,13 +14,7 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Ability to manipulate torrents
- */
-
 package org.saunter.swarmstat.snippet
-
-import java.text.SimpleDateFormat
-import java.util.Date
 
 import net.liftweb.http._
 import net.liftweb.http.SHtml._
@@ -28,41 +22,24 @@ import net.liftweb.http.S._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.mapper._
+import net.liftweb.sitemap._
+import net.liftweb.sitemap.Loc._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml.{NodeSeq, Text}
 
 import org.saunter.swarmstat.model._
-import org.saunter.swarmstat.torrent._
-import org.saunter.swarmstat.torrent.feeds._
 
-class TorrentSnippet {
+object TorrentOverview {
 
-  def viewstate(html: NodeSeq) = {
-    <lift:comet type="DynamicStateView" name={toLong(S.param("id")).toString}>
-      <state:view>Loading...</state:view>
-    </lift:comet>
-  }
+  def sitemap: List[Menu] =
+    List(Menu(Loc("Torrents", List("torrents"), S.?("Torrents"),
+                  User.testLogginIn)))
+}
 
-  def viewlist(html: NodeSeq) = {
-    <lift:comet type="DynamicTorrentView" name={toLong(S.param("id")).toString}>
-      <torrent:view>Loading...</torrent:view>
-    </lift:comet>
-  }
-
-  def addTorrent(html: NodeSeq) = {
-    var url = ""
-
-    def save() = {
-      S.notice("URL: " + url)
-      FeedWatcher.feeds(1) match {
-        case x: BasicFeed => x.store(url)
-        case _ => println("foo!")
-      }
-    }
-
-    bind("torrent", html,
-         "url" -> text(url, url=_),
-         "submit" -> submit(?("New"), () => save))
+class TorrentOverivew {
+  def top(html: NodeSeq) = {
+    val max_view = 20 // XXX - Needs to be configurable
+    html
   }
 }

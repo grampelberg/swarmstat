@@ -14,20 +14,25 @@
  * Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Model to keep peer data.
- */
+import scalax.io._
+import org.apache.commons.codec.net._
+import org.saunter.bencode._
+import java.security.MessageDigest
+import org.saunter.swarmstat.util.WebFetch
 
-package org.saunter.swarmstat.model
-
-import net.liftweb.mapper._
-import net.liftweb.util.Helpers._
-
-// XXX - Need to get rid of the PK here.
-class Peer extends LongKeyedMapper[Peer] with IdPK {
-  def getSingleton = Peer
-
-  object state extends MappedLongForeignKey(this, TorrentState)
-  object ip extends MappedInt(this)
+val q = ReaderResource.url("http://www.mininova.org/get/2959179").slurp
+val w = BencodeDecoder.decode(q)
+val e = w match {
+  case Some(x: Map[String, _]) => x.get("info")
 }
+val r = e match {
+  case Some(x: Map[String, _]) => BencodeEncoder.encode(x)
+}
+val t = MessageDigest.getInstance("SHA").digest(r.getBytes)
+println(t)
+val y = new URLCodec()
+val u = t.map(_.toChar).mkString + " "
+println(y.encode(u.toArray.map(_.toByte)).map(_.toChar).mkString.replaceAll("\\+", "%20"))
 
-object Peer extends Peer with LongKeyedMetaMapper[Peer]
+println(y.encode(t).map(_.toChar).mkString)
+println(WebFetch.escape(u))

@@ -1,10 +1,11 @@
-- logging (log4j)
+- logging (configgy)
   - feeds
   - peers
   - trackers
   - webfetch
   - comet functionality
   - per page basis?
+  - need separate logs for "errors" and "standard operation"
 
 - httpclient
   - gzip compression

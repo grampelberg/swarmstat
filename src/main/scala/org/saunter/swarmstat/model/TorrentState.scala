@@ -19,16 +19,18 @@ package org.saunter.swarmstat.model
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
-class TorrentState extends LongKeyedMapper[TorrentState] with IdPK {
+class TorrentState extends LongKeyedMapper[TorrentState] with IdPK
+    with OneToMany[Long, TorrentState] {
   def getSingleton = TorrentState
 
   object relationship extends MappedLongForeignKey(this, Relationship)
-  object seeds extends MappedInt(this)
-  object peers extends MappedInt(this)
+  object seed_count extends MappedInt(this)
+  object peer_count extends MappedInt(this)
   object downloaded extends MappedInt(this)
   object when extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
+  object peers extends MappedOneToMany(Peer, Peer.state)
 }
 
 object TorrentState extends TorrentState with LongKeyedMetaMapper[TorrentState]

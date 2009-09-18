@@ -1,6 +1,8 @@
 package org.saunter.swarmstat.model
 
 import _root_.net.liftweb.mapper._
+import _root_.net.liftweb.sitemap._
+import _root_.net.liftweb.sitemap.Loc._
 import _root_.net.liftweb.util._
 
 /**
@@ -16,6 +18,14 @@ object User extends User with MetaMegaProtoUser[User] {
 
   // comment this line out to require email validations
   override def skipEmailValidation = true
+
+  // If the server run.mode==dev, any connection is logged in.
+  override def loggedIn_? =
+    currentUserId.isDefined || System.getProperty("run.mode") == "dev"
+
+  // Either you've got an account or not sucker.
+  override lazy val sitemap: List[Menu] =
+    List(loginMenuLoc, logoutMenuLoc).flatten(a => a)
 }
 
 /**
@@ -30,4 +40,6 @@ class User extends MegaProtoUser[User] {
     override def textareaCols = 50
     override def displayName = "Personal Essay"
   }
+
+
 }

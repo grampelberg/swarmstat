@@ -112,7 +112,6 @@ trait Feed extends Actor {
 
   Logger("Feed").info("%s: starting", feed)
   this.start
-  Logger("Feed").info("%s: updates every %s", feed, timer)
   ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
                                 TimeSpan(timer))
 }

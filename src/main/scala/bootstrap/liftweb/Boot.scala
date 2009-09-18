@@ -12,6 +12,7 @@ import net.lag.configgy.Configgy
 import net.lag.logging.Logger
 
 import _root_.org.saunter.swarmstat.model._
+import _root_.org.saunter.swarmstat.snippet._
 import _root_.org.saunter.swarmstat.torrent._
 import _root_.org.saunter.swarmstat.util._
 
@@ -139,9 +140,17 @@ object DBVendor extends ConnectionManager {
 
 object MenuSetup {
 
+  def index: Box[Menu] =
+    Full(Menu(Loc("Home", List("index"), S.?("Home"))))
+
+  def state: Box[Menu] =
+    Full(Menu(Loc("State", List("state"), S.?("State"), User.testLogginIn)))
+
+  def manual: Box[Menu] =
+    Full(Menu(Loc("Manual", List("manual"), S.?("Manual"), User.testLogginIn)))
+
   def menu: List[Menu] =
-    Menu(Loc("Home", List("index"), "Home")) ::
-    Menu(Loc("State", List("state"), "State")) ::
+    List(index, state, manual).flatten(x=>x) ::: TorrentOverview.sitemap :::
     User.sitemap
 
 }

@@ -44,7 +44,7 @@ class DynamicStateView extends CometActor {
     StateWatcher ! Add(this)
     states = TorrentState.findAll(
       OrderBy(TorrentState.id, Descending),
-      MaxRows(max_view)).map(x => (x.seeds, x.peers, x.downloaded))
+      MaxRows(max_view)).map(x => (x.seed_count, x.peer_count, x.downloaded))
   }
 
   override def lowPriority: PartialFunction[Any, Unit] = {
