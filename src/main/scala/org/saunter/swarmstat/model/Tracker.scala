@@ -29,26 +29,10 @@ class Tracker extends KeyedMapper[String, Tracker]
   // Fields
   object uuid extends UUID(this)
   object hostname extends MappedPoliteString(this, 128)
-  object torrents extends HasManyThrough(this, Torrent, Relationship,
-                                         Relationship.torrent,
-                                         Relationship.tracker)
   object first_seen extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
   object relations extends MappedOneToMany(Relationship, Relationship.tracker)
-
-  // Convenience methods
-  def addTorrent(tor: Torrent) = {
-    Relationship.create.tracker(this).torrent(tor).save
-    torrents.reset
-  }
-
-  def removeTorrent(tor: Torrent) = {
-    Relationship.find(By(Relationship.torrent, tor.info_hash),
-                      By(Relationship.tracker, this.uuid)).foreach(
-                        Relationship.delete_!)
-    torrents.reset
-  }
 }
 
 object Tracker extends Tracker with KeyedMetaMapper[String, Tracker]

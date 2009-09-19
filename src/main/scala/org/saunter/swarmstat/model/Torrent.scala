@@ -35,23 +35,7 @@ class Torrent extends KeyedMapper[String, Torrent]
     override def defaultValue = timeNow
   }
   object name extends MappedPoliteString(this, 128)
-  object trackers extends HasManyThrough(this, Tracker, Relationship,
-                                         Relationship.tracker,
-                                         Relationship.torrent)
   object relations extends MappedOneToMany(Relationship, Relationship.torrent)
-
-  // Convenience Methods
-  def addTracker(track: Tracker) = {
-    Relationship.create.tracker(track).torrent(this).save
-    trackers.reset
-  }
-
-  def removeTracker(track: Tracker) = {
-    Relationship.find(By(Relationship.torrent, this.info_hash),
-                      By(Relationship.tracker, track.uuid)).foreach(
-                        Relationship.delete_!)
-    trackers.reset
-  }
 }
 
 object Torrent extends Torrent with KeyedMetaMapper[String, Torrent]
