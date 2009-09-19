@@ -24,19 +24,17 @@ import net.liftweb.util.Helpers._
 
 import org.saunter.swarmstat.util._
 
-class Torrent extends KeyedMapper[String, Torrent]
-    with ManyToMany {
+class Torrent extends LongKeyedMapper[Torrent] with IdPK
+    with OneToMany[Long, Torrent] {
   def getSingleton = Torrent
-  def primaryKeyField = info_hash
 
   // Fields
-  object info_hash extends UUID(this)
+  object info_hash extends MappedPoliteString(this, 20)
   object creation extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
   object name extends MappedPoliteString(this, 128)
-  object trackers extends MappedManyToMany(Relationship, Relationship.torrent,
-                                           Relationship.tracker, Tracker)
+  object sources extends MappedOneToMany(TorrentSource, TorrentSource.torrent, OrderBy(TorrentSource.url, Ascending)) with Owned[TorrentSource] with Cascade[TorrentSource]
 }
 
-object Torrent extends Torrent with KeyedMetaMapper[String, Torrent]
+object Torrent extends Torrent with LongKeyedMetaMapper[Torrent]

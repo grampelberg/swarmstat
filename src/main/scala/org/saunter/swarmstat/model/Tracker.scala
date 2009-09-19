@@ -21,8 +21,7 @@ import net.liftweb.util.Helpers._
 
 import org.saunter.swarmstat.util._
 
-class Tracker extends KeyedMapper[String, Tracker]
-    with ManyToMany {
+class Tracker extends KeyedMapper[String, Tracker] {
   def getSingleton = Tracker
   def primaryKeyField = uuid
 
@@ -32,8 +31,6 @@ class Tracker extends KeyedMapper[String, Tracker]
   object first_seen extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
-  object torrents extends MappedManyToMany(Relationship, Relationship.tracker,
-                                           Relationship.torrent, Torrent)
 }
 
 object Tracker extends Tracker with KeyedMetaMapper[String, Tracker]

@@ -81,28 +81,17 @@ trait Feed extends Actor {
       if (validate(raw) && new_feed_?(raw)) {
         val tor = new Info(raw)
         if (tor.name == "") { return }
-        if (new_torrent_?(tor.info_hash_raw)) {
-          var tor_obj = Torrent.create.info_hash(tor.info_hash_raw).name(
-            tor.name).creation(tor.creation).save
-          // var trackers = tor.trackers.map(x => (new URI(x)).getHost).map(
-          //   x => new_tracker_?(x) match {
-          //     case Some(y) => y
-          //     case None => Tracker.create.hostname(x)
-          //   })
-          // var trackers = tor.trackers.map(x => (new URI(x)).getHost).map(
-          //   x => Tracker.find(By(Tracker.hostname, x)) match {
-          //     case Full(y) => y
-          //     case _ => Tracker.create.hostname(x)
-          //   })
-          // trackers.foreach(x => {
-          //   tor_obj.trackers += x
-          //   x.torrents += tor_obj
-          // })
-          // tor_obj.trackers.save
-          FeedWatcher ! NewTorrent(tor)
+        var tor_obj = Torrent.find(By(Torrent.info_hash,
+                                      tor.info_hash_raw)) match {
+          case Full(x) => x
+          case _ => {
+            FeedWatcher ! NewTorrent(tor)
+            Torrent.create.info_hash(tor.info_hash_raw).name(
+              tor.name).creation(tor.creation).saveMe
+          }
         }
-        TorrentSource.create.url(raw).torrent(tor.info_hash_raw).save
-        FeedWatcher ! NewSource(tor)
+        tor_obj.sources += TorrentSource.create.url(raw)
+        tor_obj.sources.save
       }
     } catch {
       case e: java.net.SocketException =>
@@ -112,13 +101,6 @@ trait Feed extends Actor {
 
   def new_feed_?(tor: String): Boolean =
     TorrentSource.find(By(TorrentSource.url, tor)) match {
-      case Full(_) => false
-      case Empty => true
-      case _ => true
-    }
-
-  def new_torrent_?(hash: String): Boolean =
-    Torrent.find(By(Torrent.info_hash, hash)) match {
       case Full(_) => false
       case Empty => true
       case _ => true
