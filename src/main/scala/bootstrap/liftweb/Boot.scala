@@ -2,10 +2,12 @@ package bootstrap.liftweb
 
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.http._
+import _root_.net.liftweb.http.provider._
 import _root_.net.liftweb.sitemap._
 import _root_.net.liftweb.sitemap.Loc._
 import Helpers._
 import _root_.net.liftweb.mapper.{DB, ConnectionManager, Schemifier, DefaultConnectionIdentifier, ConnectionIdentifier}
+import _root_.net.liftweb.mapper.view._
 import _root_.java.sql.{Connection, DriverManager}
 import _root_.javax.servlet.http.{HttpServletRequest}
 import net.lag.configgy.Configgy
@@ -66,13 +68,14 @@ class Boot {
     FeedWatcher
     StateWatcher
 
+    TableEditor.registerTable("Torrents", Torrent, "Torrents")
     log.info("Boot complete.")
   }
 
   /**
    * Force the request to be UTF-8
    */
-  private def makeUtf8(req: HttpServletRequest) {
+  private def makeUtf8(req: HTTPRequest) {
     req.setCharacterEncoding("UTF-8")
   }
 }
@@ -149,8 +152,12 @@ object MenuSetup {
   def manual: Box[Menu] =
     Full(Menu(Loc("Manual", List("manual"), S.?("Manual"), User.testLogginIn)))
 
+  def table_editor: Box[Menu] =
+    Full(Menu(Loc("Table Editor", List("tableeditor", "default"), S.?("Table Editor"),
+                  User.testLogginIn)))
+
   def menu: List[Menu] =
-    List(index, state, manual).flatten(x=>x) ::: TorrentOverview.sitemap :::
+    List(index, state, manual, table_editor).flatten(x=>x) ::: TorrentOverview.sitemap :::
     User.sitemap
 
 }

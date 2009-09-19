@@ -25,7 +25,7 @@ import net.liftweb.util.Helpers._
 import org.saunter.swarmstat.util._
 
 class Torrent extends KeyedMapper[String, Torrent]
-    with OneToMany[String, Torrent] {
+    with ManyToMany {
   def getSingleton = Torrent
   def primaryKeyField = info_hash
 
@@ -35,23 +35,8 @@ class Torrent extends KeyedMapper[String, Torrent]
     override def defaultValue = timeNow
   }
   object name extends MappedPoliteString(this, 128)
-  object trackers extends HasManyThrough(this, Tracker, Relationship,
-                                         Relationship.tracker,
-                                         Relationship.torrent)
-  object relations extends MappedOneToMany(Relationship, Relationship.torrent)
-
-  // Convenience Methods
-  def addTracker(track: Tracker) = {
-    Relationship.create.tracker(track).torrent(this).save
-    trackers.reset
-  }
-
-  def removeTracker(track: Tracker) = {
-    Relationship.find(By(Relationship.torrent, this.info_hash),
-                      By(Relationship.tracker, track.uuid)).foreach(
-                        Relationship.delete_!)
-    trackers.reset
-  }
+  object trackers extends MappedManyToMany(Relationship, Relationship.torrent,
+                                           Relationship.tracker, Tracker)
 }
 
 object Torrent extends Torrent with KeyedMetaMapper[String, Torrent]

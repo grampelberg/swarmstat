@@ -16,6 +16,8 @@
 
 package org.saunter.swarmstat.torrent
 
+import java.net.URI
+
 import net.lag.logging.Logger
 import net.liftweb.mapper._
 import net.liftweb.util.{ActorPing,Box,Full,Empty,Failure}
@@ -80,8 +82,23 @@ trait Feed extends Actor {
         val tor = new Info(raw)
         if (tor.name == "") { return }
         if (new_torrent_?(tor.info_hash_raw)) {
-          Torrent.create.info_hash(tor.info_hash_raw).name(tor.name).creation(
-            tor.creation).save
+          var tor_obj = Torrent.create.info_hash(tor.info_hash_raw).name(
+            tor.name).creation(tor.creation).save
+          // var trackers = tor.trackers.map(x => (new URI(x)).getHost).map(
+          //   x => new_tracker_?(x) match {
+          //     case Some(y) => y
+          //     case None => Tracker.create.hostname(x)
+          //   })
+          // var trackers = tor.trackers.map(x => (new URI(x)).getHost).map(
+          //   x => Tracker.find(By(Tracker.hostname, x)) match {
+          //     case Full(y) => y
+          //     case _ => Tracker.create.hostname(x)
+          //   })
+          // trackers.foreach(x => {
+          //   tor_obj.trackers += x
+          //   x.torrents += tor_obj
+          // })
+          // tor_obj.trackers.save
           FeedWatcher ! NewTorrent(tor)
         }
         TorrentSource.create.url(raw).torrent(tor.info_hash_raw).save
