@@ -19,13 +19,16 @@
 
 package org.saunter.swarmstat.model
 
+import java.net.URI
+
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
+import org.saunter.swarmstat.torrent._
 import org.saunter.swarmstat.util._
 
 class Torrent extends KeyedMapper[String, Torrent]
-    with OneToMany[String, Torrent] {
+    with OneToMany[String, Torrent] with ManyToMany {
   def getSingleton = Torrent
   def primaryKeyField = info_hash
 
@@ -35,7 +38,37 @@ class Torrent extends KeyedMapper[String, Torrent]
     override def defaultValue = timeNow
   }
   object name extends MappedPoliteString(this, 128)
-  object relations extends MappedOneToMany(Relationship, Relationship.torrent)
+  object sources extends MappedOneToMany(
+    TorrentSource, TorrentSource.torrent) with Owned[TorrentSource]
+  object trackers extends MappedManyToMany(Relationship, Relationship.torrent,
+                                           Relationship.tracker, Tracker)
+
+  def add_source(url: String) = {
+    sources += TorrentSource.create.url(url)
+    sources.save
+    this
+  }
+
+  def add_new_trackers(trackers: List[String]) =
+    trackers.map(x => (new URI(x)).getHost).map(
+      Tracker.getOrCreate(_)).filter(
+      new_tracker_?(_)).foreach(add_tracker(_))
+
+  // XXX - need a NewTracker() event
+  def add_tracker(tracker: Tracker) = {
+    trackers += tracker
+    trackers.save
+    this
+  }
+
+  def new_tracker_?(tracker: Tracker) = !trackers.contains(tracker)
 }
 
-object Torrent extends Torrent with KeyedMetaMapper[String, Torrent]
+object Torrent extends Torrent with KeyedMetaMapper[String, Torrent] {
+  def getOrCreate(tor: Info) =
+    find(By(info_hash, tor.info_hash_raw)) getOrElse {
+      FeedWatcher ! NewTorrent(tor)
+      create.info_hash(tor.info_hash_raw).name(tor.name).creation(
+        tor.creation).saveMe
+    }
+}

@@ -93,12 +93,12 @@ class StateWatcher extends Actor {
       case None => Tracker.create.hostname(tracker).saveMe.uuid.is
     }
 
-  def relationship_id(tor_id: String, track_id: String): Long =
-    new_relationship_?(tor_id, track_id) match {
-      case Some(x: Relationship) => x.id.is
-      case None => Relationship.create.torrent(tor_id).tracker(
-        track_id).saveMe.id.is
-    }
+  // def relationship_id(tor_id: String, track_id: String): Long =
+  //   new_relationship_?(tor_id, track_id) match {
+  //     case Some(x: Relationship) => x.id.is
+  //     case None => Relationship.create.torrent(tor_id).tracker(
+  //       track_id).saveMe.id.is
+  //   }
 
   def save_state(state: Announce) = {
     Logger("StateMonitor").info("%s:%s: Seeds:%s\tPeers:%s\tTotal:%s\tCount:%s",
@@ -106,11 +106,11 @@ class StateWatcher extends Actor {
                                 state.hostname, state.seed_count,
                                 state.peer_count, state.total_count,
                                 state.peer_list.length)
-    val rel_id = relationship_id(state.info_hash, tracker_id(state.hostname))
-    val state_id = TorrentState.create.relationship(rel_id).seed_count(
-      state.seed_count).peer_count(state.peer_count).downloaded(
-      state.total_count).saveMe.id.is
-    state.peer_list.foreach(save_peer(_, state_id))
+    // val rel_id = relationship_id(state.info_hash, tracker_id(state.hostname))
+    // val state_id = TorrentState.create.relationship(rel_id).seed_count(
+    //   state.seed_count).peer_count(state.peer_count).downloaded(
+    //   state.total_count).saveMe.id.is
+    // state.peer_list.foreach(save_peer(_, state_id))
   }
 
   def save_peer(ip: String, rel_id: Long) =
@@ -122,12 +122,12 @@ class StateWatcher extends Actor {
       case _ => None
     }
 
-  def new_relationship_?(torrent_id: String, tracker_id: String) =
-    Relationship.find(By(Relationship.torrent, torrent_id),
-                      By(Relationship.tracker, tracker_id)) match {
-      case Full(x) => Some(x)
-      case _ => None
-    }
+  // def new_relationship_?(torrent_id: String, tracker_id: String) =
+  //   Relationship.find(By(Relationship.torrent, torrent_id),
+  //                     By(Relationship.tracker, tracker_id)) match {
+  //     case Full(x) => Some(x)
+  //     case _ => None
+  //   }
 
   Logger("StateMonitor").info("starting")
   this.start

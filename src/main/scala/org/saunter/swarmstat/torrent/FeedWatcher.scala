@@ -76,16 +76,10 @@ trait Feed extends Actor {
 
   def store(raw: String): Unit =
     try {
-      if (validate(raw) && new_feed_?(raw)) {
+      if (validate(raw) && new_source_?(raw)) {
         val tor = new Info(raw)
         if (tor.name == "") { return }
-        if (new_torrent_?(tor.info_hash_raw)) {
-          Torrent.create.info_hash(tor.info_hash_raw).name(tor.name).creation(
-            tor.creation).save
-          FeedWatcher ! NewTorrent(tor)
-        }
-        TorrentSource.create.url(raw).torrent(tor.info_hash_raw).save
-        FeedWatcher ! NewSource(tor)
+        Torrent.getOrCreate(tor).add_source(raw).add_new_trackers(tor.trackers)
       }
     } catch {
       case e: java.net.SocketException =>
@@ -93,19 +87,8 @@ trait Feed extends Actor {
       case e => Logger("Feed").error(e, "%s: store: %s", feed, raw)
     }
 
-  def new_feed_?(tor: String): Boolean =
-    TorrentSource.find(By(TorrentSource.url, tor)) match {
-      case Full(_) => false
-      case Empty => true
-      case _ => true
-    }
-
-  def new_torrent_?(hash: String): Boolean =
-    Torrent.find(By(Torrent.info_hash, hash)) match {
-      case Full(_) => false
-      case Empty => true
-      case _ => true
-    }
+  def new_source_?(tor: String): Boolean =
+    !(TorrentSource.find(By(TorrentSource.url, tor)) isDefined)
 
   def validate(url: String) =
     url.startsWith("http://")
