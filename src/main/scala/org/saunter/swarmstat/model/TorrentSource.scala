@@ -21,7 +21,7 @@ import net.liftweb.util.Helpers._
 
 import org.saunter.swarmstat.util._
 
-class TorrentSource extends LongKeyedMapper[TorrentSource] with IdPK with Ordered[TorrentSource] {
+class TorrentSource extends LongKeyedMapper[TorrentSource] with IdPK {
   def getSingleton = TorrentSource
 
   object torrent extends UUIDForeignKey(this, Torrent)
@@ -29,8 +29,6 @@ class TorrentSource extends LongKeyedMapper[TorrentSource] with IdPK with Ordere
   object first_seen extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
-
-  def compare(that: TorrentSource) = this.url.is.toInt -  that.url.is.toInt
 }
 
 object TorrentSource extends TorrentSource

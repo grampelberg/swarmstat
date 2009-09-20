@@ -16,8 +16,6 @@
 
 package org.saunter.swarmstat.torrent
 
-import java.net.URI
-
 import net.lag.logging.Logger
 import net.liftweb.mapper._
 import net.liftweb.util.{ActorPing,Box,Full,Empty,Failure}
@@ -78,21 +76,10 @@ trait Feed extends Actor {
 
   def store(raw: String): Unit =
     try {
-      if (validate(raw) && new_feed_?(raw)) {
+      if (validate(raw) && new_source_?(raw)) {
         val tor = new Info(raw)
         if (tor.name == "") { return }
-        var tor_obj = Torrent.find(By(Torrent.info_hash,
-                                      tor.info_hash_raw)) match {
-          case Full(x) => x
-          case _ => {
-            FeedWatcher ! NewTorrent(tor)
-            Torrent.create.info_hash(tor.info_hash_raw).name(
-              tor.name).creation(tor.creation).saveMe
-          }
-        }
-        tor_obj
-        // tor_obj.sources += TorrentSource.create.url(raw)
-        // tor_obj.sources.save
+        Torrent.getOrCreate(tor).add_source(raw).add_new_trackers(tor.trackers)
       }
     } catch {
       case e: java.net.SocketException =>
@@ -100,12 +87,8 @@ trait Feed extends Actor {
       case e => Logger("Feed").error(e, "%s: store: %s", feed, raw)
     }
 
-  def new_feed_?(tor: String): Boolean =
-    TorrentSource.find(By(TorrentSource.url, tor)) match {
-      case Full(_) => false
-      case Empty => true
-      case _ => true
-    }
+  def new_source_?(tor: String): Boolean =
+    !(TorrentSource.find(By(TorrentSource.url, tor)) isDefined)
 
   def validate(url: String) =
     url.startsWith("http://")
