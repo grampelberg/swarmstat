@@ -72,7 +72,7 @@ class Boot {
   /**
    * Force the request to be UTF-8
    */
-  private def makeUtf8(req: HttpServletRequest) {
+  private def makeUtf8(req: net.liftweb.http.provider.HTTPRequest) {
     req.setCharacterEncoding("UTF-8")
   }
 }
