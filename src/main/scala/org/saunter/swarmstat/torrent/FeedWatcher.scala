@@ -90,8 +90,9 @@ trait Feed extends Actor {
               tor.name).creation(tor.creation).saveMe
           }
         }
-        tor_obj.sources += TorrentSource.create.url(raw)
-        tor_obj.sources.save
+        tor_obj
+        // tor_obj.sources += TorrentSource.create.url(raw)
+        // tor_obj.sources.save
       }
     } catch {
       case e: java.net.SocketException =>
