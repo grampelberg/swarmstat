@@ -26,7 +26,7 @@ class Relationship extends LongKeyedMapper[Relationship] with IdPK
   def getSingleton = Relationship
 
   // Fields
-  object torrent extends UUIDForeignKey(this, Torrent)
+  object torrent extends InfoHashForeignKey(this, Torrent)
   object tracker extends UUIDForeignKey(this, Tracker)
   object states extends MappedOneToMany(TorrentState, TorrentState.relationship)
 }

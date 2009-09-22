@@ -24,7 +24,7 @@ import org.saunter.swarmstat.util._
 class TorrentSource extends LongKeyedMapper[TorrentSource] with IdPK {
   def getSingleton = TorrentSource
 
-  object torrent extends UUIDForeignKey(this, Torrent)
+  object torrent extends InfoHashForeignKey(this, Torrent)
   object url extends MappedPoliteString(this, 128)
   object first_seen extends MappedDateTime(this) {
     override def defaultValue = timeNow

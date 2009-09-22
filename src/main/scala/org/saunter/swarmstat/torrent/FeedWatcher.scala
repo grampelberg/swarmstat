@@ -72,14 +72,15 @@ trait Feed extends Actor {
 
   // XXX - This is bad, shouldn't be hard coded.
   def update =
-    fetch.foreach(store(_))
+    fetch.foreach(store)
 
   def store(raw: String): Unit =
     try {
       if (validate(raw) && new_source_?(raw)) {
         val tor = new Info(raw)
         if (tor.name == "") { return }
-        Torrent.getOrCreate(tor).add_source(raw).add_new_trackers(tor.trackers)
+        Torrent.getOrCreate(tor).add_source(raw).add_new_trackers(
+          tor.trackers)
       }
     } catch {
       case e: java.net.SocketException =>

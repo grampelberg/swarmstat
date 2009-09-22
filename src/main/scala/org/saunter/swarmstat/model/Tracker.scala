@@ -27,7 +27,7 @@ class Tracker extends KeyedMapper[String, Tracker]
   def primaryKeyField = uuid
 
   // Fields
-  object uuid extends UUID(this)
+  object uuid extends UUIDPrimaryKey(this)
   object hostname extends MappedPoliteString(this, 128)
   object first_seen extends MappedDateTime(this) {
     override def defaultValue = timeNow

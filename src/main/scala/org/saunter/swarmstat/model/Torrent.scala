@@ -33,7 +33,7 @@ class Torrent extends KeyedMapper[String, Torrent]
   def primaryKeyField = info_hash
 
   // Fields
-  object info_hash extends UUID(this)
+  object info_hash extends InfoHashPrimaryKey(this)
   object creation extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
@@ -49,10 +49,12 @@ class Torrent extends KeyedMapper[String, Torrent]
     this
   }
 
-  def add_new_trackers(trackers: List[String]) =
-    trackers.map(x => (new URI(x)).getHost).map(
-      Tracker.getOrCreate(_)).filter(
-      new_tracker_?(_)).foreach(add_tracker(_))
+  def add_new_trackers(tracker_list: List[String]) = {
+    tracker_list.map(x => (new URI(x)).getHost).map(
+      Tracker.getOrCreate).filter(
+      new_tracker_?).foreach(add_tracker)
+    this
+  }
 
   // XXX - need a NewTracker() event
   def add_tracker(tracker: Tracker) = {
