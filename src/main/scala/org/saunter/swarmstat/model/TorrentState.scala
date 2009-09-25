@@ -19,6 +19,8 @@ package org.saunter.swarmstat.model
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
+import org.saunter.swarmstat.util._
+
 class TorrentState extends LongKeyedMapper[TorrentState] with IdPK
     with OneToMany[Long, TorrentState] {
   def getSingleton = TorrentState
@@ -31,6 +33,18 @@ class TorrentState extends LongKeyedMapper[TorrentState] with IdPK
     override def defaultValue = timeNow
   }
   object peers extends MappedOneToMany(Peer, Peer.state)
+
+  def set_relationship(info_hash: String, tracker_uuid: String) =
+    relationship(Relationship.find(By(Relationship.torrent, info_hash),
+                      By(Relationship.tracker, tracker_uuid)).get)
+
+  def add_peers(peer_list: List[String]) = {
+    peer_list.foreach(x => {
+      peers += Peer.create.ip(Conversion.ip(x))
+      peers.save
+    })
+    this
+  }
 }
 
 object TorrentState extends TorrentState with LongKeyedMetaMapper[TorrentState]

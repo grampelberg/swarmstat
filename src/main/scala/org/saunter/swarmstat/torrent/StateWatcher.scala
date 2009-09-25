@@ -88,17 +88,7 @@ class StateWatcher extends Actor {
     torrent_state = (new State(tor)) :: torrent_state
 
   def tracker_id(tracker: String) =
-    new_tracker_?(tracker) match {
-      case Some(x: Tracker) => x.uuid.is
-      case None => Tracker.create.hostname(tracker).saveMe.uuid.is
-    }
-
-  // def relationship_id(tor_id: String, track_id: String): Long =
-  //   new_relationship_?(tor_id, track_id) match {
-  //     case Some(x: Relationship) => x.id.is
-  //     case None => Relationship.create.torrent(tor_id).tracker(
-  //       track_id).saveMe.id.is
-  //   }
+    Tracker.getOrCreate(tracker).uuid.is
 
   def save_state(state: Announce) = {
     Logger("StateMonitor").info("%s:%s: Seeds:%s\tPeers:%s\tTotal:%s\tCount:%s",
@@ -106,28 +96,15 @@ class StateWatcher extends Actor {
                                 state.hostname, state.seed_count,
                                 state.peer_count, state.total_count,
                                 state.peer_list.length)
-    // val rel_id = relationship_id(state.info_hash, tracker_id(state.hostname))
-    // val state_id = TorrentState.create.relationship(rel_id).seed_count(
-    //   state.seed_count).peer_count(state.peer_count).downloaded(
-    //   state.total_count).saveMe.id.is
-    // state.peer_list.foreach(save_peer(_, state_id))
+    TorrentState.create.set_relationship(state.info_hash, tracker_id(
+      state.hostname)).seed_count(state.seed_count).peer_count(
+      state.peer_count).downloaded(state.total_count).add_peers(
+        state.peer_list).save
+    println(TorrentState.findAll(MaxRows(20)).map(_.peers.toString))
   }
 
   def save_peer(ip: String, rel_id: Long) =
     Peer.create.state(rel_id).ip(Conversion.ip(ip)).save
-
-  def new_tracker_?(track: String) =
-    Tracker.find(By(Tracker.hostname, track)) match {
-      case Full(x) => Some(x)
-      case _ => None
-    }
-
-  // def new_relationship_?(torrent_id: String, tracker_id: String) =
-  //   Relationship.find(By(Relationship.torrent, torrent_id),
-  //                     By(Relationship.tracker, tracker_id)) match {
-  //     case Full(x) => Some(x)
-  //     case _ => None
-  //   }
 
   Logger("StateMonitor").info("starting")
   this.start
