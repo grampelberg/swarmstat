@@ -50,20 +50,9 @@ class Announce(announce_url: String, info_hash_tmp: String) {
     }
 
   def fetch: Map[String, _] =
-    try {
-      val raw = WebFetch.url(url)
-      BencodeDecoder.decode(raw) match {
-        case Some(x: Map[String, _]) => invalid_data_?(x, raw); x
-        case _ => invalid_data_?(Map(), raw); Map()
-      }
-    } catch {
-      case e: java.net.SocketTimeoutException =>
-        Logger("Announce").info("%s: slow host", url); Map()
-      case e: org.apache.http.NoHttpResponseException =>
-        Logger("Announce").info("%s: bad host", url); Map()
-      case e: java.net.SocketException =>
-        Logger("Announce").info("%s: bad host", url); Map()
-      case e => Logger("Announce").error(e, "%s: fetch", url); Map()
+    BencodeDecoder.decode(WebFetch.url(url)) match {
+      case Some(x: Map[String, _]) => invalid_data_?(x, raw); x
+      case _ => invalid_data_?(Map(), raw); Map()
     }
 
   var data: Map[String, _] = Map()
@@ -111,9 +100,9 @@ class Announce(announce_url: String, info_hash_tmp: String) {
 class State(tor: Info) {
   Logger("State").info("%s: initializing", tor.name)
 
-  val trackers = List(new Announce(tor.trackers(0), tor.info_hash_raw))
-  // val trackers =
-  //   tor.trackers.map(new TrackerSnapshot(_, tor.info_hash_raw))
+  var trackers =
+    tor.trackers.filter(TrackerWatcher !? ValidTracker?(_)).map(
+      new TrackerSnapshot(_, tor.info_hash_raw))
 
   def seed_count = trackers.map(_.seed_count).reduceLeft(_+_)
   def peer_count = trackers.map(_.peer_count).reduceLeft(_+_)
@@ -123,5 +112,18 @@ class State(tor: Info) {
     trackers.flatMap(_.peer_list)
 
   def refresh =
-    trackers.foreach(_.refresh)
+    trackers = trackers.filter(x =>
+      try {
+        _.refresh
+        true
+      } catch {
+        case e: java.net.SocketTimeoutException =>
+          Logger("Announce").info("%s: slow host", url); true
+        case e: org.apache.http.NoHttpResponseException =>
+          Logger("Announce").info("%s: bad host", url); false
+        case e: java.net.SocketException =>
+          Logger("Announce").info("%s: bad host", url); false
+        case e => Logger("Announce").error(e, "%s: fetch", url); true
+      }
+    )
 }

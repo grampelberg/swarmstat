@@ -31,9 +31,8 @@ case class NewState(seed_count: Int, peer_count: Int, total_count: Int)
 case class WatchTorrent(tor: Info)
 
 object StateWatcher extends Actor with Listener {
-  private var state_monitors: List[Actor] = List()
-  private var max_torrents = 20
-  private var watch_counter = 0
+  private var state_monitors: List[StateWatcher] = List()
+  private var max_torrents = 10
 
   def act = loop {
     react(handler orElse {
@@ -43,7 +42,7 @@ object StateWatcher extends Actor with Listener {
       }
       case NewTorrent(x: Info) => {
         Logger("StateWatcher").info("NewTorrent: %s", x.name)
-        state_monitors.foreach(_ ! WatchTorrent(x))
+        new_torrent(x)
       }
     })
   }
@@ -52,6 +51,13 @@ object StateWatcher extends Actor with Listener {
     Logger("StateWatcher").info("launching new monitor")
     state_monitors = (new StateWatcher) :: state_monitors
   }
+
+  def new_torrent(tor: Info): Unit =
+    state_monitors match {
+      case x :: _ if x.torrent_state.length < max_torrents =>
+        x ! WatchTorrent(tor)
+      case _ => new_monitor; new_torrent(tor)
+    }
 
   Logger("StateWatcher").info("starting")
   FeedWatcher ! Add(this)
@@ -107,6 +113,7 @@ class StateWatcher extends Actor {
 
   Logger("StateMonitor").info("starting")
   this.start
+  // XXX - This needs to be removed, schedule another ping on each ping.
   ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
                                 TimeSpan(timer))
 }
