@@ -15,3 +15,10 @@ run.mode=dev disables user authentication):
 
     MAVEN_OPTS=-Xmx512m mvn -o -D run.mode=dev jetty:run
 
+Notes
+=====
+
+Since I've not noted this anywhere else, to run this you need a patched version
+of lift-mapper to get it to work. I'm in the process of getting this pushed to
+my own liftweb clone but for now you'll need to ask me if you'd like the
+patches.
