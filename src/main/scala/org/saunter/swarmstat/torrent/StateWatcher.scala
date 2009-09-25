@@ -98,9 +98,8 @@ class StateWatcher extends Actor {
                                 state.peer_list.length)
     TorrentState.create.set_relationship(state.info_hash, tracker_id(
       state.hostname)).seed_count(state.seed_count).peer_count(
-      state.peer_count).downloaded(state.total_count).add_peers(
-        state.peer_list).save
-    println(TorrentState.findAll(MaxRows(20)).map(_.peers.toString))
+      state.peer_count).downloaded(state.total_count).saveMe.add_peers(
+        state.peer_list)
   }
 
   def save_peer(ip: String, rel_id: Long) =

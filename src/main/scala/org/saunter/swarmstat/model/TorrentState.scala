@@ -32,17 +32,15 @@ class TorrentState extends LongKeyedMapper[TorrentState] with IdPK
   object when extends MappedDateTime(this) {
     override def defaultValue = timeNow
   }
-  object peers extends MappedOneToMany(Peer, Peer.state)
+  object peers extends MappedOneToMany(Peer, Peer.state) with Owned[Peer]
 
   def set_relationship(info_hash: String, tracker_uuid: String) =
     relationship(Relationship.find(By(Relationship.torrent, info_hash),
                       By(Relationship.tracker, tracker_uuid)).get)
 
   def add_peers(peer_list: List[String]) = {
-    peer_list.foreach(x => {
-      peers += Peer.create.ip(Conversion.ip(x))
-      peers.save
-    })
+    peer_list.foreach(x => peers += Peer.create.ip(Conversion.ip(x)))
+    peers.save
     this
   }
 }

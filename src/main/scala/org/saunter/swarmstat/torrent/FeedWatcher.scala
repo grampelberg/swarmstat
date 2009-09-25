@@ -96,6 +96,7 @@ trait Feed extends Actor {
 
   Logger("Feed").info("%s: starting", feed)
   this.start
+  // XXX - This needs to be removed, schedule another ping on each ping.
   ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
                                 TimeSpan(timer))
 }
