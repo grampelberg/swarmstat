@@ -41,9 +41,6 @@ class DynamicTorrentView extends CometActor {
 
   override def localSetup = {
     FeedWatcher ! Add(this)
-    // XXX - This isn't valid anymore!!!!!!!
-    torrents = Torrent.findAll(OrderBy(Torrent.info_hash, Descending),
-                               MaxRows(max_view)).map(_.name)
   }
 
   override def lowPriority: PartialFunction[Any, Unit] = {

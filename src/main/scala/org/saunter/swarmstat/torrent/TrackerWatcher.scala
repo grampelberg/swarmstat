@@ -17,35 +17,34 @@
 package org.saunter.swarmstat.torrent
 
 import net.lag.logging.Logger
-import net.liftweb.mapper._
-import net.liftweb.util.{ActorPing,Box,Full,Empty,Failure}
-import net.liftweb.util.Helpers.TimeSpan
 import scala.actors.Actor
 import scala.actors.Actor._
-import scala.xml._
 
-import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.util._
 
-case class NewState(seed_count: Int, peer_count: Int, total_count: Int)
-case class WatchTorrent(tor: Info)
+case class InvalidateTracker(t: String)
+case class CheckTracker(ret: Actor, t: String)
+case class ValidTracker(t: String)
+case class RemoveTracker(t: String)
 
-object StateWatcher extends Actor with Listener {
+object TrackerWatcher extends Actor with Listener {
+  private var bad_trackers: List[String] = List()
 
   def act = loop {
     react(handler orElse {
-      case NewState(s: Int, p: Int, t: Int) => {
-        Logger("StateWatcher").info("NewState")
-        listeners.foreach(_ ! NewState(s, p, t))
+      case InvalidateTracker(t: String) => {
+        Logger("TrackerWatcher").info("Invalidating tracker: "+t)
+        bad_trackers = t :: bad_trackers
+        listeners.foreach(_ ! RemoveTracker(t))
       }
-      case NewTorrent(x: Info) => {
-        Logger("StateWatcher").info("NewTorrent: %s", x.name)
-        new State(x)
+      case CheckTracker(ret: Actor, t: String) => {
+        Logger("TrackerWatcher").info("Checking tracker: " + t)
+        if (!bad_trackers.exists(_==t)) ret ! ValidTracker(t)
       }
     })
   }
 
-  Logger("StateWatcher").info("starting")
-  FeedWatcher ! Add(this)
+  Logger("TrackerWatcher").info("starting")
+  // Sure enough, it's important to start stuff, eh?
   this.start
 }

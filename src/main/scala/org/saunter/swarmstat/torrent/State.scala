@@ -22,11 +22,17 @@ import java.util.Random
 
 import net.lag.logging.Logger
 import net.liftweb.util.Helpers._
+import net.liftweb.util.{ActorPing,Box,Full,Empty,Failure}
+import net.liftweb.util.Helpers.TimeSpan
+import scala.actors.Actor
+import scala.actors.Actor._
 
 import org.saunter.bencode._
+import org.saunter.swarmstat.model._
 import org.saunter.swarmstat.util._
 
-class Announce(announce_url: String, info_hash_tmp: String) {
+class Announce(announce_url_tmp: String, info_hash_tmp: String) {
+  val announce_url = announce_url_tmp
   val info_hash = info_hash_tmp
   val hostname = (new URI(announce_url)).getHost
 
@@ -46,14 +52,19 @@ class Announce(announce_url: String, info_hash_tmp: String) {
   def invalid_data_?(parsed: Map[String, _], raw: String) =
     parsed.get("complete") match {
       case Some(_) => None
-      case _ => Logger("Announce").debug("URL: %s\n%s", url, raw)
+      case _ => {
+        Logger("Announce").debug("URL: %s\n%s", url, raw)
+        TrackerWatcher ! InvalidateTracker(announce_url)
+      }
     }
 
-  def fetch: Map[String, _] =
-    BencodeDecoder.decode(WebFetch.url(url)) match {
+  def fetch: Map[String, _] = {
+    val raw = WebFetch.url(url)
+    BencodeDecoder.decode(raw) match {
       case Some(x: Map[String, _]) => invalid_data_?(x, raw); x
       case _ => invalid_data_?(Map(), raw); Map()
     }
+  }
 
   var data: Map[String, _] = Map()
 
@@ -97,12 +108,21 @@ class Announce(announce_url: String, info_hash_tmp: String) {
     }
 }
 
-class State(tor: Info) {
-  Logger("State").info("%s: initializing", tor.name)
+class State(tor: Info) extends Actor with Listener {
+  val startup_delay = 30*1000
+  val timer = 5*60*1000
 
-  var trackers =
-    tor.trackers.filter(TrackerWatcher !? ValidTracker?(_)).map(
-      new TrackerSnapshot(_, tor.info_hash_raw))
+  def act = loop {
+    react(handler orElse {
+      case ValidTracker(x: String) =>
+        trackers :::= List(new Announce(x, tor.info_hash_raw))
+      case Update => refresh
+      case RemoveTracker(track: String) =>
+        trackers = trackers.filter(x => x.announce_url != track)
+    })
+  }
+
+  var trackers: List[Announce] = List()
 
   def seed_count = trackers.map(_.seed_count).reduceLeft(_+_)
   def peer_count = trackers.map(_.peer_count).reduceLeft(_+_)
@@ -114,16 +134,41 @@ class State(tor: Info) {
   def refresh =
     trackers = trackers.filter(x =>
       try {
-        _.refresh
+        x.refresh
+        save_state(x)
+        StateWatcher ! NewState(x.seed_count, x.peer_count, x.total_count)
         true
       } catch {
         case e: java.net.SocketTimeoutException =>
-          Logger("Announce").info("%s: slow host", url); true
+          Logger("Announce").info("%s: slow host", x.url); true
         case e: org.apache.http.NoHttpResponseException =>
-          Logger("Announce").info("%s: bad host", url); false
+          Logger("Announce").info("%s: bad host", x.url); false
         case e: java.net.SocketException =>
-          Logger("Announce").info("%s: bad host", url); false
-        case e => Logger("Announce").error(e, "%s: fetch", url); true
+          Logger("Announce").info("%s: bad host", x.url); false
+        case e => Logger("Announce").error(e, "%s: fetch", x.url); true
       }
     )
+
+  def tracker_id(tracker: String) =
+    Tracker.getOrCreate(tracker).uuid.is
+
+  def save_state(state: Announce) = {
+    Logger("StateMonitor").info("%s:%s: Seeds:%s\tPeers:%s\tTotal:%s\tCount:%s",
+                                WebFetch.escape(state.info_hash),
+                                state.hostname, state.seed_count,
+                                state.peer_count, state.total_count,
+                                state.peer_list.length)
+    TorrentState.create.set_relationship(state.info_hash, tracker_id(
+      state.hostname)).seed_count(state.seed_count).peer_count(
+      state.peer_count).downloaded(state.total_count).saveMe.add_peers(
+        state.peer_list)
+  }
+
+  Logger("State").info("%s: starting", tor.name)
+  TrackerWatcher ! Add(this)
+  this.start
+  // XXX - This needs to be removed, schedule another ping on each ping.
+  ActorPing.scheduleAtFixedRate(this, Update, TimeSpan(startup_delay),
+                                TimeSpan(timer))
+  tor.trackers.foreach(x => TrackerWatcher ! CheckTracker(this, x))
 }
