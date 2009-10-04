@@ -42,6 +42,8 @@ class Torrent extends KeyedMapper[String, Torrent]
     TorrentSource, TorrentSource.torrent) with Owned[TorrentSource]
   object trackers extends MappedManyToMany(Relationship, Relationship.torrent,
                                            Relationship.tracker, Tracker)
+  object relationships extends MappedOneToMany(Relationship,
+                                               Relationship.torrent)
 
   def add_source(url: String) = {
     sources += TorrentSource.create.url(url)

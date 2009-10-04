@@ -1,0 +1,28 @@
+<lift:surround with="default" at="content">
+  <div class="left" style="float:left;width:75%">
+    <lift:TorrentOverview.top_list>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Seeds</th>
+            <th>Peers</th>
+            <th>Total Downloads</th>
+            <th>Seen IPs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <torrent:list>
+            <tr>
+              <td><torrent:name /></td>
+              <td><torrent:seeds /></td>
+              <td><torrent:peers /></td>
+              <td><torrent:total /></td>
+              <td><torrent:seen_ips /></td>
+            </tr>
+          </torrent:list>
+        </tbody>
+      </table>
+    </lift:TorrentOverview.top_list>
+  </div>
+</lift:surround>

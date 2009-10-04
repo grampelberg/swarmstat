@@ -38,8 +38,25 @@ object TorrentOverview {
 }
 
 class TorrentOverivew {
-  def top(html: NodeSeq) = {
+  def top_list(html: NodeSeq) = {
     val max_view = 20 // XXX - Needs to be configurable
-    html
+
+    def toShow = Torrent.findAll(MaxRows(max_view))
+
+    def doList(html: NodeSeq) =
+      toShow.flatMap(td =>
+        bind("torrent", html,
+             "name" -> td.name,
+             "seeds" -> td.relationships.foldLeft(0)(
+               _+_.states.foldLeft(0)(_+_.seed_count.toInt)),
+             "peers" -> td.relationships.foldLeft(0)(
+               _+_.states.foldLeft(0)(_+_.peer_count.toInt)),
+             "total" -> td.relationships.foldLeft(0)(
+               _+_.states.foldLeft(0)(_+_.downloaded.toInt)),
+             "seen_ips" -> td.relationships.foldLeft(0)(
+               _+_.states.foldLeft(0)(_+_.peers.length))
+           ))
+
+    doList(html)
   }
 }

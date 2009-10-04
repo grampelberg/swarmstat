@@ -42,8 +42,9 @@ class Announce(announce_url_tmp: String, info_hash_tmp: String) {
     ("info_hash", info_hash),
     ("numwant", "10000"),
     ("compact", "1"),
-    ("port", "3137"),
-    ("peer_id", "-SW0001-" + (1 to 12).map(x => random.nextInt(9)).mkString)
+    ("port", "31337"),
+    ("peer_id", "-SW0001-" + (1 to 12).map(x => random.nextInt(9)).mkString),
+    ("key", (1 to 10).map(x => random.nextInt(9)).mkString)
   )
 
   val url =
