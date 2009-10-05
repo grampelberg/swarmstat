@@ -56,6 +56,8 @@ class Boot {
     LiftRules.ajaxEnd =
       Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
 
+    LiftRules.formatDate = Conversion.date_format _
+
     LiftRules.early.append(makeUtf8)
 
     LiftRules.loggedInTest = Full(() => User.loggedIn_?)
@@ -154,12 +156,19 @@ object MenuSetup {
     Full(Menu(Loc("Manual", List("manual"), S.?("Manual"), User.testLogginIn)))
 
   def table_editor: Box[Menu] =
-    Full(Menu(Loc("Table Editor", List("tableeditor", "default"), S.?("Table Editor"),
+    Full(Menu(Loc("Table Editor", List("tableeditor", "default"),
+                  S.?("Table Editor"), User.testLogginIn)))
+
+  def torrent_overview: Box[Menu] =
+    Full(Menu(Loc("Torrents", List("torrents", "top"), S.?("Torrents"),
+                  User.testLogginIn)))
+
+  def torrent_detail: Box[Menu] =
+    Full(Menu(Loc("Detail", List("torrents", "detail"), S.?("Detail"),
                   User.testLogginIn)))
 
   def menu: List[Menu] =
-    List(index, state, manual, table_editor).flatten(x=>x) ::: TorrentOverview.sitemap :::
-    User.sitemap
+    List(index, state, manual, torrent_overview, torrent_detail).flatten(x=>x) ::: User.sitemap
 
 }
 

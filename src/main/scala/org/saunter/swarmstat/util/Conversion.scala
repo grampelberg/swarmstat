@@ -17,6 +17,9 @@
 package org.saunter.swarmstat.util
 
 import java.net.InetAddress
+import java.net.URI
+import java.text.SimpleDateFormat
+import java.util.Date
 
 object Conversion {
 
@@ -32,4 +35,9 @@ object Conversion {
     ((i & 0x0000FF00) >> 8).toByte,
     ((i & 0x000000FF)).toByte)
 
+  def date_format(x: Date): String =
+    (new SimpleDateFormat("H:mm MM/dd")).format(x)
+
+  def hostname(x: String): String =
+    (new URI(x)).getHost
 }

@@ -1,0 +1,24 @@
+<lift:surround with="default" at="content">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Seeds</th>
+        <th>Peers</th>
+        <th>Downloaded</th>
+        <th>Seen</th>
+      </tr>
+    </thead>
+    <tbody>
+      <lift:TorrentInfo.list>
+        <tr>
+          <td><torrent:name /></td>
+          <td><torrent:seed_count /></td>
+          <td><torrent:peer_count /></td>
+          <td><torrent:downloaded /></td>
+          <td><torrent:seen /></td>
+        </tr>
+      </lift:TorrentInfo.list>
+    </tbody>
+  </table>
+</lift:surround>

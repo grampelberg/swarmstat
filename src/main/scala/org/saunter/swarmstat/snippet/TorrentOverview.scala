@@ -30,33 +30,8 @@ import scala.xml.{NodeSeq, Text}
 
 import org.saunter.swarmstat.model._
 
-object TorrentOverview {
-
-  def sitemap: List[Menu] =
-    List(Menu(Loc("Torrents", List("torrents"), S.?("Torrents"),
-                  User.testLogginIn)))
-}
-
 class TorrentOverivew {
-  def top_list(html: NodeSeq) = {
-    val max_view = 20 // XXX - Needs to be configurable
-
-    def toShow = Torrent.findAll(MaxRows(max_view))
-
-    def doList(html: NodeSeq) =
-      toShow.flatMap(td =>
-        bind("torrent", html,
-             "name" -> td.name,
-             "seeds" -> td.relationships.foldLeft(0)(
-               _+_.states.foldLeft(0)(_+_.seed_count.toInt)),
-             "peers" -> td.relationships.foldLeft(0)(
-               _+_.states.foldLeft(0)(_+_.peer_count.toInt)),
-             "total" -> td.relationships.foldLeft(0)(
-               _+_.states.foldLeft(0)(_+_.downloaded.toInt)),
-             "seen_ips" -> td.relationships.foldLeft(0)(
-               _+_.states.foldLeft(0)(_+_.peers.length))
-           ))
-
-    doList(html)
-  }
+  def list(html: NodeSeq) =
+    bind("torrent", html,
+         "foo" -> "foo!")
 }

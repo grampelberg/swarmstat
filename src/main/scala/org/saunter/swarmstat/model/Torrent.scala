@@ -19,8 +19,6 @@
 
 package org.saunter.swarmstat.model
 
-import java.net.URI
-
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
@@ -52,7 +50,7 @@ class Torrent extends KeyedMapper[String, Torrent]
   }
 
   def add_new_trackers(tracker_list: List[String]) = {
-    tracker_list.map(x => (new URI(x)).getHost).map(
+    tracker_list.map(x => Conversion.hostname(x)).map(
       Tracker.getOrCreate).filter(
       new_tracker_?).foreach(add_tracker)
     this

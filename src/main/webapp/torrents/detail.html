@@ -1,0 +1,64 @@
+<lift:surround with="default" at="content">
+  <div class="container">
+    <div class="span-8">
+      <lift:TorrentInfo.detail>
+        <div id="name">
+          <h4>Name</h4>
+          <torrent:name />
+        </div>
+        <div id="creation">
+          <h4>Creation</h4>
+          <torrent:creation />
+        </div>
+        <div id="trackers">
+          <h4>Trackers</h4>
+          <torrent:trackers>
+            <ul>
+              <tracker:list>
+                <li><t:hostname /></li>
+              </tracker:list>
+            </ul>
+          </torrent:trackers>
+        </div>
+        <div id="sources">
+          <h4>Sources</h4>
+          <torrent:sources>
+            <ul>
+              <source:list>
+                <li><t:hostname /></li>
+              </source:list>
+            </ul>
+          </torrent:sources>
+        </div>
+      </lift:TorrentInfo.detail>
+    </div>
+    <div class="span-16 last">
+      <table>
+        <thead>
+          <tr>
+            <th>Tracker</th>
+            <th>When</th>
+            <th>Seeds</th>
+            <th>Peers</th>
+            <th>Downloads</th>
+            <th>IPs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <lift:TorrentInfo.states>
+            <tr>
+              <td><state:tracker /></td>
+              <td><state:when /></td>
+              <td><state:seed_count /></td>
+              <td><state:peer_count /></td>
+              <td><state:downloaded /></td>
+              <td><state:seen /></td>
+            </tr>
+          </lift:TorrentInfo.states>
+        </tbody>
+      </table>
+      <lift:TorrentInfo.states>
+      </lift:TorrentInfo.states>
+    </div>
+  </div>
+</lift:surround>
